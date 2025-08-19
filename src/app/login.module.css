@@ -1,0 +1,66 @@
+/* src/app/login/login.module.css (새로운 설명에 맞춘 버전) */
+
+.container {
+  display: flex;
+  justify-content: center; /* 가로 중앙 정렬 */
+  align-items: center;    /* 세로 중앙 정렬 */
+  min-height: 100vh;      /* 최소 높이를 화면 전체 높이로 설정 */
+}
+
+
+
+/* 폼 요소들을 정렬 */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.2rem;
+  width: 100%;      /* 화면이 작을 때는 꽉 차도록 */
+  max-width: 400px; 
+  padding: 0 1rem;  /* 화면 양 옆에 약간의 여백 추가 (모바일 대응) */
+}
+
+/* 흰색 입력창 스타일 (변경 없음) */
+.input {
+  width: 100%;
+  padding: 0.8rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  font-size: 1rem;
+  background-color: white;
+  color: #333;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #007bff;
+}
+
+/* 
+  로그인 상태 유지 체크박스 (변경 없음)
+  globals.css에서 body의 color가 white로 설정되어 있으므로
+  '로그인 상태 유지' 글자는 자동으로 흰색으로 보입니다.
+*/
+.checkboxGroup {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* 빨간색 로그인 버튼 (변경 없음) */
+.loginButton {
+  padding: 0.9rem;
+  background-color: #dc3545;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  margin-top: 1rem;
+  transition: background-color 0.2s;
+}
+
+.loginButton:hover {
+  background-color: #c82333;
+}
