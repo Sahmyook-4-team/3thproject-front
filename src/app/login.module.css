@@ -1,25 +1,46 @@
-/* src/app/login/login.module.css (새로운 설명에 맞춘 버전) */
+/* src/app/login.module.css (수정된 최종 버전) */
 
 .container {
   display: flex;
-  justify-content: center; /* 가로 중앙 정렬 */
-  align-items: center;    /* 세로 중앙 정렬 */
-  min-height: 100vh;      /* 최소 높이를 화면 전체 높이로 설정 */
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
 }
 
+/* ✅ 1. 로고와 폼 전체를 감싸고 완벽하게 중앙 정렬하는 역할 */
+.loginWrapper {
+  display: flex;
+  flex-direction: column; /* 아이템을 세로로 쌓음 */
+  align-items: center;    /* 아이템들을 가로축 중앙에 정렬 (이것이 핵심!) */
+  width: 100%;
+  max-width: 450px;       /* 로그인 영역의 전체 가로 너비 (원하는 값으로 조절) */
+  padding: 0 1rem;
+}
 
+/* ✅ 2. 메인 화면과 동일한 스타일 + 간격 확보 */
+.logo {
+  font-size: 2.8rem;      /* 눈에 잘 띄도록 크기 살짝 키움 */
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  margin-bottom: 2.5rem;  /* 폼과의 간격을 넉넉하게 확보 */
+}
 
-/* 폼 요소들을 정렬 */
+/* ✅ 'PLUS' 글자를 빨간색으로 만드는 핵심 스타일 */
+.logo span {
+  color: #dc3545;
+}
+
+/* ✅ form 자체의 너비 제한을 제거하여 wrapper에 맞춤 */
 .form {
   display: flex;
   flex-direction: column;
   gap: 1.2rem;
-  width: 100%;      /* 화면이 작을 때는 꽉 차도록 */
-  max-width: 400px; 
-  padding: 0 1rem;  /* 화면 양 옆에 약간의 여백 추가 (모바일 대응) */
+  width: 100%; /* 부모(loginWrapper)의 너비에 꽉 채움 */
 }
 
-/* 흰색 입력창 스타일 (변경 없음) */
+/* --- 이하 스타일은 변경할 필요 없습니다 --- */
+
 .input {
   width: 100%;
   padding: 0.8rem;
@@ -36,18 +57,12 @@
   border-color: #007bff;
 }
 
-/* 
-  로그인 상태 유지 체크박스 (변경 없음)
-  globals.css에서 body의 color가 white로 설정되어 있으므로
-  '로그인 상태 유지' 글자는 자동으로 흰색으로 보입니다.
-*/
 .checkboxGroup {
   display: flex;
   align-items: center;
   gap: 0.5rem;
 }
 
-/* 빨간색 로그인 버튼 (변경 없음) */
 .loginButton {
   padding: 0.9rem;
   background-color: #dc3545;
