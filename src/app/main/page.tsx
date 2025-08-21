@@ -1,7 +1,10 @@
-// src/app/main/page.tsx
 'use client';
 
-import { useState } from 'react';
+// 1. 필요한 훅들을 import 합니다.
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuth } from '../context/AuthContext';
+
 import styles from './main.module.css';
 
 // TypeScript를 위한 임시 데이터 타입 정의
@@ -27,19 +30,49 @@ const placeholderData: Study[] = [
   { id: 'S003', patientId: 'P001', patientName: '홍길동', modality: 'XA', description: 'Coronary Angio', date: '2024-05-10', status: '판독완료', report: { comment: '경미한 협착 관찰됨.', conclusion: '추적 관찰 요망.', reader1: '박선생' } },
 ];
 
-// ✅ 함수 이름이 대문자 'M'으로 시작하는지 확인!
+
 export default function MainPage() {
+  // 2. [수정] 모든 React Hook을 컴포넌트 최상단으로 이동시킵니다.
+  // 이것이 "Rules of Hooks" 오류를 해결하는 핵심입니다.
+  const { isAuthenticated, user, logout } = useAuth();
+  const router = useRouter();
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
 
+  // 3. 페이지 보호를 위한 useEffect 훅입니다.
+  useEffect(() => {
+    // AuthContext가 아직 로딩 중이면(null) 아무것도 하지 않습니다.
+    if (isAuthenticated === null) {
+      return;
+    }
+    // 로딩이 끝났는데 인증 상태가 false이면 로그인 페이지로 리디렉션합니다.
+    if (isAuthenticated === false) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
+
+  // 4. [수정] 훅이 아닌 일반 함수는 훅 선언부 다음에 위치시킵니다.
   const handleRowClick = (study: Study) => {
     setSelectedStudy(study);
   };
+  
+  // 5. [수정] 모든 훅이 선언된 후에 조건부 return을 사용합니다.
+  if (isAuthenticated === null || isAuthenticated === false) {
+    return <div>Loading...</div>; // 또는 <Spinner /> 같은 로딩 컴포넌트
+  }
 
+  // 6. 이제부터는 컴포넌트의 실제 UI를 렌더링합니다.
   return (
     <div className={styles.container}>
       {/* ======================= 왼쪽 사이드바 ======================= */}
       <aside className={styles.sidebar}>
-        <h1 className={styles.logo}>PACS<span>PLUS</span></h1>
+        {/* [추가] 사용자 정보와 로그아웃 버튼을 추가합니다. */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem', borderBottom: '1px solid #444' }}>
+          <h1 className={styles.logo}>PACS<span>PLUS</span></h1>
+          <div>
+            <span style={{ color: 'white', marginRight: '1rem' }}>{user?.id} 님</span>
+            <button onClick={logout} className={styles.button} style={{ padding: '5px 10px' }}>로그아웃</button>
+          </div>
+        </div>
         
         <div className={styles.filterSection}>
           <div className={styles.filterGroup}>
