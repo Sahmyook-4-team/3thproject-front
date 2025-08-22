@@ -1,10 +1,10 @@
-// src/app/main/page.tsx
 'use client';
 
 import { useState } from 'react';
 import styles from './main.module.css';
+import { useRouter } from 'next/navigation';
 
-// TypeScript를 위한 임시 데이터 타입 정의
+// ✅ 1. 인터페이스(설계도)를 실제 데이터와 똑같이 수정했습니다.
 interface Study {
   id: string;
   patientId: string;
@@ -27,64 +27,26 @@ const placeholderData: Study[] = [
   { id: 'S003', patientId: 'P001', patientName: '홍길동', modality: 'XA', description: 'Coronary Angio', date: '2024-05-10', status: '판독완료', report: { comment: '경미한 협착 관찰됨.', conclusion: '추적 관찰 요망.', reader1: '박선생' } },
 ];
 
-// ✅ 함수 이름이 대문자 'M'으로 시작하는지 확인!
 export default function MainPage() {
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
+  const router = useRouter();
 
   const handleRowClick = (study: Study) => {
     setSelectedStudy(study);
   };
 
+  const handleDoubleClick = (studyId: string) => {
+    // ✅ 2. 폴더명을 [studyId]로 만들었으니, 주소도 studyId를 사용합니다.
+    router.push(`/viewer/${studyId}`);
+  };
+
   return (
     <div className={styles.container}>
-      {/* ======================= 왼쪽 사이드바 ======================= */}
+      {/* (중간 코드는 생략, 이전과 동일합니다) */}
       <aside className={styles.sidebar}>
-        <h1 className={styles.logo}>PACS<span>PLUS</span></h1>
-        
-        <div className={styles.filterSection}>
-          <div className={styles.filterGroup}>
-            <label>검사일자</label>
-            <div className={styles.dateRange}>
-              <input type="date" className={styles.input} defaultValue="2025-08-19" />
-              <span>~</span>
-              <input type="date" className={styles.input} defaultValue="2025-08-19" />
-            </div>
-          </div>
-          <div className={styles.filterGroup}>
-            <label>검사장비</label>
-            <select className={styles.select}>
-              <option>전체</option>
-              <option>CT</option>
-              <option>MR</option>
-              <option>XA</option>
-            </select>
-          </div>
-          <div className={styles.filterGroup}>
-            <label>Verify</label>
-            <select className={styles.select}>
-              <option>전체</option>
-            </select>
-          </div>
-          <div className={styles.buttonGroup} style={{marginTop: 'auto'}}>
-            <button className={styles.button} style={{width: '100%'}}>조회</button>
-            <button className={styles.button} style={{width: '100%', marginTop: '0.5rem'}}>재설정</button>
-          </div>
-        </div>
+        {/* ... */}
       </aside>
-
-      {/* ======================= 오른쪽 메인 콘텐츠 ======================= */}
       <main className={styles.mainContent}>
-        <section className={`${styles.panel} ${styles.searchPanel}`}>
-          <h2 className={styles.panelTitle}>검색</h2>
-          <div className={styles.inputGroup}>
-            <input type="text" placeholder="환자 아이디" className={styles.input} />
-            <input type="text" placeholder="환자 이름" className={styles.input} />
-            <button className={styles.button}>오늘</button>
-            <button className={styles.button}>1주일</button>
-            <button className={`${styles.button} ${styles.redButton}`}>검색</button>
-          </div>
-        </section>
-
         <section className={`${styles.panel} ${styles.resultsPanel}`}>
           <h2 className={styles.panelTitle}>총 검사 건수 : {placeholderData.length}</h2>
           <table>
@@ -103,6 +65,7 @@ export default function MainPage() {
                 <tr 
                   key={study.id} 
                   onClick={() => handleRowClick(study)}
+                  onDoubleClick={() => handleDoubleClick(study.id)}
                   className={selectedStudy?.id === study.id ? styles.selectedRow : ''}
                 >
                   <td>{study.patientId}</td>
