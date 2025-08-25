@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
 import styles from './main.module.css';
-import { useRouter } from 'next/navigation';
 
 // ✅ 1. 인터페이스(설계도)를 실제 데이터와 똑같이 수정했습니다.
 interface Study {
@@ -38,7 +37,6 @@ export default function MainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
-  const router = useRouter();
 
   // 3. 페이지 보호를 위한 useEffect 훅입니다.
   useEffect(() => {
