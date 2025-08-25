@@ -6,8 +6,9 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '../context/AuthContext';
 
 import styles from './main.module.css';
+import { useRouter } from 'next/navigation';
 
-// TypeScript를 위한 임시 데이터 타입 정의
+// ✅ 1. 인터페이스(설계도)를 실제 데이터와 똑같이 수정했습니다.
 interface Study {
   id: string;
   patientId: string;
@@ -37,6 +38,7 @@ export default function MainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
+  const router = useRouter();
 
   // 3. 페이지 보호를 위한 useEffect 훅입니다.
   useEffect(() => {
@@ -60,11 +62,18 @@ export default function MainPage() {
     return <div>Loading...</div>; // 또는 <Spinner /> 같은 로딩 컴포넌트
   }
 
+
+  const handleDoubleClick = (studyId: string) => {
+    // ✅ 2. 폴더명을 [studyId]로 만들었으니, 주소도 studyId를 사용합니다.
+    router.push(`/viewer/${studyId}`);
+  };
+
   // 6. 이제부터는 컴포넌트의 실제 UI를 렌더링합니다.
   return (
     <div className={styles.container}>
-      {/* ======================= 왼쪽 사이드바 ======================= */}
+      {/* (중간 코드는 생략, 이전과 동일합니다) */}
       <aside className={styles.sidebar}>
+
         {/* [추가] 사용자 정보와 로그아웃 버튼을 추가합니다. */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem', borderBottom: '1px solid #444' }}>
           <h1 className={styles.logo}>PACS<span>PLUS</span></h1>
@@ -103,21 +112,9 @@ export default function MainPage() {
             <button className={styles.button} style={{width: '100%', marginTop: '0.5rem'}}>재설정</button>
           </div>
         </div>
+
       </aside>
-
-      {/* ======================= 오른쪽 메인 콘텐츠 ======================= */}
       <main className={styles.mainContent}>
-        <section className={`${styles.panel} ${styles.searchPanel}`}>
-          <h2 className={styles.panelTitle}>검색</h2>
-          <div className={styles.inputGroup}>
-            <input type="text" placeholder="환자 아이디" className={styles.input} />
-            <input type="text" placeholder="환자 이름" className={styles.input} />
-            <button className={styles.button}>오늘</button>
-            <button className={styles.button}>1주일</button>
-            <button className={`${styles.button} ${styles.redButton}`}>검색</button>
-          </div>
-        </section>
-
         <section className={`${styles.panel} ${styles.resultsPanel}`}>
           <h2 className={styles.panelTitle}>총 검사 건수 : {placeholderData.length}</h2>
           <table>
@@ -136,6 +133,7 @@ export default function MainPage() {
                 <tr 
                   key={study.id} 
                   onClick={() => handleRowClick(study)}
+                  onDoubleClick={() => handleDoubleClick(study.id)}
                   className={selectedStudy?.id === study.id ? styles.selectedRow : ''}
                 >
                   <td>{study.patientId}</td>
