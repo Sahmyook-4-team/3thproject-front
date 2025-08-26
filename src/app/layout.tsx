@@ -1,25 +1,32 @@
+// src/app/layout.tsx
+
+'use client'; // 클라이언트 컴포넌트로 유지합니다.
+
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Inter } from "next/font/google";
 import "./globals.css";
 
-// ▼▼▼ 1. AuthProvider를 import 합니다. ▼▼▼
-import { AuthProvider } from "./context/AuthContext"; 
+// 1. ApolloProvider와 client를 다시 import 합니다.
+import { ApolloProvider } from "@apollo/client";
+import client from "@/lib/apollo-client";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
+// 2. AuthProvider는 그대로 둡니다.
+import { AuthProvider } from "@/context/AuthContext";
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"] });
 
+/* 
+   metadata 객체를 사용하려면 export를 다시 활성화해야 합니다.
+   단, 클라이언트 컴포넌트에서는 metadata 객체를 직접 export 할 수 없으므로,
+   필요하다면 이 부분은 별도 파일로 분리하거나 제거해야 합니다.
+   우선은 주석 처리된 상태로 두겠습니다.
+*/
+/*
 export const metadata: Metadata = {
-  // ▼▼▼ 2. (선택 사항) 프로젝트에 맞게 title, description을 수정합니다. ▼▼▼
   title: "PACS PLUS",
   description: "DICOM Viewer Project",
 };
+*/
 
 export default function RootLayout({
   children,
@@ -27,14 +34,14 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // ▼▼▼ 3. 기존의 html 태그와 lang 속성은 그대로 둡니다. ▼▼▼
-    <html lang="en"> 
-      {/* ▼▼▼ 4. 기존의 body 태그와 className(폰트 설정)은 그대로 둡니다. ▼▼▼ */}
-      <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {/* ▼▼▼ 5. AuthProvider로 children을 감싸줍니다. ▼▼▼ */}
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en">
+      <body className={inter.className}>
+        {/* 3. ApolloWrapper 대신 ApolloProvider를 직접 사용합니다. */}
+        <ApolloProvider client={client}>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ApolloProvider>
       </body>
     </html>
   );

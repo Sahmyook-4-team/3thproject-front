@@ -1,23 +1,26 @@
+// src/context/AuthContext.tsx
+
 'use client';
 
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { useRouter } from 'next/navigation';
 import { jwtDecode } from 'jwt-decode';
 
-// JWT 토큰에 담긴 정보의 타입 정의
 interface DecodedUser {
   sub: string;
   auth: string;
   exp: number;
+  username: string;
 }
 
-// Context에서 제공할 유저 정보 타입
+// 1. --- [핵심 수정 1] ---
+// 최종 user 객체의 타입에 username을 추가합니다.
 interface User {
   id: string;
   role: string;
+  username: string; // <-- 이 줄을 추가하세요!
 }
 
-// Context가 제공할 값들의 타입 정의
 interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
@@ -37,7 +40,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       try {
         const decodedUser: DecodedUser = jwtDecode(token);
         if (decodedUser.exp * 1000 > Date.now()) {
-          setUser({ id: decodedUser.sub, role: decodedUser.auth });
+          // 2. --- [핵심 수정 2] ---
+          // setUser를 호출할 때 username도 함께 저장합니다.
+          setUser({ id: decodedUser.sub, role: decodedUser.auth, username: decodedUser.username });
         } else {
           localStorage.removeItem('accessToken');
         }
@@ -52,13 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const decodedUser: DecodedUser = jwtDecode(token);
     const role = decodedUser.auth;
     
-    setUser({ id: decodedUser.sub, role });
+    // 3. --- [핵심 수정 3] ---
+    // 여기서도 setUser를 호출할 때 username을 함께 저장합니다.
+    setUser({ id: decodedUser.sub, role, username: decodedUser.username });
 
-    // 역할에 따라 다른 페이지로 리디렉션
     if (role.includes('ROLE_ADMIN')) {
       router.push('/admin');
     } else {
-      router.push('/main'); // STAFF는 /main으로
+      router.push('/main');
     }
   };
 

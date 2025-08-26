@@ -9,31 +9,41 @@
     "lint": "next lint"
   },
   "dependencies": {
-
+    "@apollo/client": "3.10.4",
     "@cornerstonejs/core": "^3.32.12",
     "@cornerstonejs/dicom-image-loader": "^3.33.2",
     "@cornerstonejs/tools": "^3.32.12",
+    "axios": "^1.11.0",
     "cornerstone-wado-image-loader": "^4.13.2",
     "dicom-parser": "^1.8.21",
-
-    "axios": "^1.11.0",
-    "jwt-decode": "^4.0.0",
-
-    "next": "15.4.6",
-    "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "graphql": "^16.11.0",
+    "jwt-decode": "^4.0.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
-
     "@types/axios": "^0.9.36",
     "@types/jwt-decode": "^2.2.1",
-
     "@types/node": "^20",
-    "@types/react": "^19",
-    "@types/react-dom": "^19",
-    "eslint": "^9",
-    "eslint-config-next": "15.4.6",
+    "@types/react": "^18.3.24",
+    "@types/react-dom": "^18.3.7",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.32",
+    "next": "^14.2.32",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
     "typescript": "^5"
-  }
+  },
+  "description": "This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).",
+  "main": "next.config.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Sahmyook-4-team/3thproject-front.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Sahmyook-4-team/3thproject-front/issues"
+  },
+  "homepage": "https://github.com/Sahmyook-4-team/3thproject-front#readme"
 }

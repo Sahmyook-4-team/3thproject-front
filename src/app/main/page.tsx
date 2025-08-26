@@ -1,120 +1,192 @@
 'use client';
 
-// 1. 필요한 훅들을 import 합니다.
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '../context/AuthContext';
-
+import { useAuth } from '@/context/AuthContext';
+// 1. useMutation을 import 합니다.
+import { useLazyQuery, useMutation } from '@apollo/client';
+import { GET_PATIENT_WITH_STUDIES } from '@/graphql/queries';
+// 2. 소견서 저장을 위한 Mutation을 import 합니다.
+import { CREATE_OR_UPDATE_REPORT } from '@/graphql/mutations';
 import styles from './main.module.css';
 
-// ✅ 1. 인터페이스(설계도)를 실제 데이터와 똑같이 수정했습니다.
-interface Study {
-  id: string;
-  patientId: string;
-  patientName: string;
-  modality: string;
-  description: string;
-  date: string;
-  status: string;
-  report: {
-    comment: string;
-    conclusion: string;
-    reader1: string;
-  };
+// DB 스키마와 GraphQL 쿼리에 맞춰 TypeScript 타입 정의
+interface Author {
+  username: string;
 }
 
-// Spring API에서 받아올 데이터라고 가정한 임시 데이터
-const placeholderData: Study[] = [
-  { id: 'S001', patientId: 'P001', patientName: '홍길동', modality: 'CT', description: 'Abdomen CT', date: '2025-08-19', status: '판독완료', report: { comment: '정상 소견입니다.', conclusion: '특이사항 없음.', reader1: '김의사' } },
-  { id: 'S002', patientId: 'P002', patientName: '이순신', modality: 'MR', description: 'Brain MRI', date: '2025-08-18', status: '판독대기', report: { comment: '판독 대기 중...', conclusion: '', reader1: '' } },
-  { id: 'S003', patientId: 'P001', patientName: '홍길동', modality: 'XA', description: 'Coronary Angio', date: '2024-05-10', status: '판독완료', report: { comment: '경미한 협착 관찰됨.', conclusion: '추적 관찰 요망.', reader1: '박선생' } },
-];
+interface Report {
+  reportId: string;
+  reportContent: string;
+  reportStatus: string;
+  author: Author;
+}
 
+interface Study {
+  studyKey: string;
+  studydesc: string;
+  studydate: string;
+  studytime: string;
+  modality: string;
+  seriescnt: number;
+  imagecnt: number;
+  report: Report | null; // 리포트가 없을 수도 있으므로 null 허용
+}
+
+interface Patient {
+  pid: string;
+  pname: string;
+  studies: Study[];
+}
 
 export default function MainPage() {
-  // 2. [수정] 모든 React Hook을 컴포넌트 최상단으로 이동시킵니다.
-  // 이것이 "Rules of Hooks" 오류를 해결하는 핵심입니다.
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
-  const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
 
-  // 3. 페이지 보호를 위한 useEffect 훅입니다.
-  useEffect(() => {
-    // AuthContext가 아직 로딩 중이면(null) 아무것도 하지 않습니다.
-    if (isAuthenticated === null) {
-      return;
+  // --- 상태 관리 ---
+  const [searchInput, setSearchInput] = useState({ patientId: '', patientName: '' });
+  const [patientData, setPatientData] = useState<Patient | null>(null);
+  const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
+  // 3. 소견서 입력을 위한 상태를 추가합니다.
+  const [reportContentInput, setReportContentInput] = useState('');
+
+  // --- GraphQL 데이터 fetching ---
+  const [searchPatient, { loading, error, data }] = useLazyQuery(GET_PATIENT_WITH_STUDIES);
+
+  // 4. 소견서 저장을 위한 useMutation Hook을 추가합니다.
+  const [saveReport, { loading: saving, error: saveError }] = useMutation(
+    CREATE_OR_UPDATE_REPORT,
+    {
+      // 저장이 성공하면, 현재 환자 데이터를 다시 불러와 화면을 갱신합니다.
+      refetchQueries: [
+        {
+          query: GET_PATIENT_WITH_STUDIES,
+          variables: { pid: patientData?.pid },
+        },
+      ],
     }
-    // 로딩이 끝났는데 인증 상태가 false이면 로그인 페이지로 리디렉션합니다.
+  );
+
+  // 페이지 보호 로직
+  useEffect(() => {
     if (isAuthenticated === false) {
       router.push('/login');
     }
   }, [isAuthenticated, router]);
 
-  // 4. [수정] 훅이 아닌 일반 함수는 훅 선언부 다음에 위치시킵니다.
+  // 검색 결과가 도착하면 상태에 저장
+  useEffect(() => {
+    if (data && data.patient) {
+      setPatientData(data.patient);
+      setSelectedStudy(null); // 새로운 환자 검색 시 선택 초기화
+    }
+  }, [data]);
+
+  // 5. 선택된 검사가 바뀌면, 해당 검사의 소견서 내용을 입력 상태에 반영합니다.
+  useEffect(() => {
+    if (selectedStudy) {
+      setReportContentInput(selectedStudy.report?.reportContent ?? '');
+    } else {
+      setReportContentInput(''); // 선택 해제 시 내용 비우기
+    }
+  }, [selectedStudy]);
+  
+  // --- 이벤트 핸들러 ---
+  const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setSearchInput(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSearch = () => {
+    if (searchInput.patientId) {
+      searchPatient({ variables: { pid: searchInput.patientId } });
+    } else {
+      alert('환자 아이디를 입력해주세요.');
+    }
+  };
+
   const handleRowClick = (study: Study) => {
     setSelectedStudy(study);
   };
-  
-  // 5. [수정] 모든 훅이 선언된 후에 조건부 return을 사용합니다.
-  if (isAuthenticated === null || isAuthenticated === false) {
-    return <div>Loading...</div>; // 또는 <Spinner /> 같은 로딩 컴포넌트
-  }
 
-
-  const handleDoubleClick = (studyId: string) => {
-    // ✅ 2. 폴더명을 [studyId]로 만들었으니, 주소도 studyId를 사용합니다.
-    router.push(`/viewer/${studyId}`);
+  // 6. 소견서 관련 이벤트 핸들러들을 추가합니다.
+  const handleReportContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setReportContentInput(e.target.value);
   };
 
-  // 6. 이제부터는 컴포넌트의 실제 UI를 렌더링합니다.
+  const handleSaveReport = () => {
+    if (!selectedStudy) {
+      alert('저장할 검사를 선택해주세요.');
+      return;
+    }
+
+    saveReport({
+      variables: {
+        studyKey: Number(selectedStudy.studyKey),
+        reportContent: reportContentInput,
+        reportStatus: 'DRAFT',
+      },
+    })
+      .then(() => {
+        alert('소견서가 저장되었습니다.');
+      })
+      .catch((err) => {
+        console.error('소견서 저장 실패:', err);
+        alert(`소견서 저장에 실패했습니다: ${err.message}`);
+      });
+  };
+
+  // 판독 상태를 한글로 변환하는 함수
+  const formatReportStatus = (status: string | null | undefined) => {
+    if (!status) return '판독대기';
+    switch (status) {
+      case 'DRAFT': return '작성중';
+      case 'FINAL': return '판독완료';
+      case 'CORRECTED': return '수정완료';
+      default: return '판독대기';
+    }
+  };
+
+  if (isAuthenticated === null || !isAuthenticated) {
+    return <div>Loading...</div>;
+  }
+
+  // --- UI 렌더링 ---
   return (
     <div className={styles.container}>
-      {/* (중간 코드는 생략, 이전과 동일합니다) */}
+      {/* 왼쪽 사이드바 */}
       <aside className={styles.sidebar}>
-
-        {/* [추가] 사용자 정보와 로그아웃 버튼을 추가합니다. */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0 1rem', borderBottom: '1px solid #444' }}>
-          <h1 className={styles.logo}>PACS<span>PLUS</span></h1>
-          <div>
-            <span style={{ color: 'white', marginRight: '1rem' }}>{user?.id} 님</span>
-            <button onClick={logout} className={styles.button} style={{ padding: '5px 10px' }}>로그아웃</button>
-          </div>
-        </div>
-        
-        <div className={styles.filterSection}>
-          <div className={styles.filterGroup}>
-            <label>검사일자</label>
-            <div className={styles.dateRange}>
-              <input type="date" className={styles.input} defaultValue="2025-08-19" />
-              <span>~</span>
-              <input type="date" className={styles.input} defaultValue="2025-08-19" />
-            </div>
-          </div>
-          <div className={styles.filterGroup}>
-            <label>검사장비</label>
-            <select className={styles.select}>
-              <option>전체</option>
-              <option>CT</option>
-              <option>MR</option>
-              <option>XA</option>
-            </select>
-          </div>
-          <div className={styles.filterGroup}>
-            <label>Verify</label>
-            <select className={styles.select}>
-              <option>전체</option>
-            </select>
-          </div>
-          <div className={styles.buttonGroup} style={{marginTop: 'auto'}}>
-            <button className={styles.button} style={{width: '100%'}}>조회</button>
-            <button className={styles.button} style={{width: '100%', marginTop: '0.5rem'}}>재설정</button>
-          </div>
-        </div>
-
+        {/* ... */}
       </aside>
+
       <main className={styles.mainContent}>
+        {/* 상단 검색 패널 */}
+        <section className={`${styles.panel} ${styles.searchPanel}`}>
+          {/* ... */}
+            <input
+              type="text"
+              name="patientId"
+              placeholder="환자 아이디"
+              className={styles.input}
+              value={searchInput.patientId}
+              onChange={handleSearchInputChange}
+            />
+            <input
+              type="text"
+              name="patientName"
+              placeholder="환자 이름"
+              className={styles.input}
+              value={searchInput.patientName}
+              onChange={handleSearchInputChange}
+            />
+            <button className={`${styles.button} ${styles.redButton}`} onClick={handleSearch} disabled={loading}>
+              {loading ? '검색중...' : '검색'}
+            </button>
+        </section>
+
+        {/* 중간 검사 결과 패널 */}
         <section className={`${styles.panel} ${styles.resultsPanel}`}>
-          <h2 className={styles.panelTitle}>총 검사 건수 : {placeholderData.length}</h2>
+          {/* ... */}
           <table>
             <thead>
               <tr>
@@ -124,57 +196,102 @@ export default function MainPage() {
                 <th>검사설명</th>
                 <th>검사일시</th>
                 <th>판독상태</th>
+                <th>시리즈</th>
+                <th>이미지</th>
+                <th>Verify</th>
               </tr>
             </thead>
             <tbody>
-              {placeholderData.map((study) => (
-                <tr 
-                  key={study.id} 
+              {patientData?.studies.map((study) => (
+                <tr
+                  key={study.studyKey}
                   onClick={() => handleRowClick(study)}
-                  onDoubleClick={() => handleDoubleClick(study.id)}
-                  className={selectedStudy?.id === study.id ? styles.selectedRow : ''}
+                  className={selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''}
                 >
-                  <td>{study.patientId}</td>
-                  <td>{study.patientName}</td>
+                  <td>{patientData.pid}</td>
+                  <td>{patientData.pname}</td>
                   <td>{study.modality}</td>
-                  <td>{study.description}</td>
-                  <td>{study.date}</td>
-                  <td>{study.status}</td>
+                  <td>{study.studydesc}</td>
+                  <td>{`${study.studydate} ${study.studytime}`}</td>
+                  <td>{formatReportStatus(study.report?.reportStatus)}</td>
+                  <td>{study.seriescnt}</td>
+                  <td>{study.imagecnt}</td>
+                  <td>-</td>
                 </tr>
               ))}
             </tbody>
           </table>
+          {error && <p style={{ color: 'red' }}>데이터 로딩 실패: {error.message}</p>}
         </section>
         
+        {/* 하단 상세 정보 패널 */}
         <div className={styles.bottomSection}>
           <section className={styles.panel}>
             <h2 className={styles.panelTitle}>과거 검사 이력</h2>
-            {selectedStudy ? (
+            {patientData ? (
               <div>
-                <p><strong>환자 아이디:</strong> {selectedStudy.patientId}</p>
-                <p><strong>환자 이름:</strong> {selectedStudy.patientName}</p>
+                <p><strong>환자 아이디:</strong> {patientData.pid}</p>
+                <p><strong>환자 이름:</strong> {patientData.pname}</p>
+                <table className={styles.historyTable}>
+                  <thead>
+                    <tr>
+                      <th>검사장비</th>
+                      <th>검사설명</th>
+                      <th>검사일시</th>
+                      <th>판독상태</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {patientData.studies.map((study) => (
+                      <tr key={study.studyKey}>
+                        <td>{study.modality}</td>
+                        <td>{study.studydesc}</td>
+                        <td>{`${study.studydate} ${study.studytime}`}</td>
+                        <td>{formatReportStatus(study.report?.reportStatus)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             ) : (
-              <p className={styles.placeholderText}>검사를 선택하면 환자의 과거 이력을 볼 수 있습니다.</p>
+              <p className={styles.placeholderText}>환자를 검색하면 과거 이력을 볼 수 있습니다.</p>
             )}
           </section>
 
+          {/* 7. 리포트 UI 패널 전체를 수정합니다. */}
           <section className={`${styles.panel} ${styles.reportPanel}`}>
             <h2 className={styles.panelTitle}>리포트</h2>
             {selectedStudy ? (
               <>
                 <div>
-                  <label>[코멘트]</label>
-                  <textarea className={styles.reportTextarea} value={selectedStudy.report.comment} readOnly />
+                  <label>[코멘트/결론]</label>
+                  <textarea
+                    className={styles.reportTextarea}
+                    value={reportContentInput}
+                    onChange={handleReportContentChange}
+                    placeholder="소견을 입력하세요..."
+                    disabled={saving}
+                  />
                 </div>
-                <div style={{marginTop: '1rem'}}>
-                  <label>[결론]</label>
-                  <textarea className={styles.reportTextarea} value={selectedStudy.report.conclusion} readOnly />
+                <div style={{ marginTop: '1rem' }}>
+                  <label>판독의</label>
+                  <input
+                    type="text"
+                    className={styles.input}
+                    value={selectedStudy.report?.author?.username ?? user?.username ?? '미지정'}
+                    readOnly
+                  />
                 </div>
-                 <div style={{marginTop: '1rem'}}>
-                  <label>예비판독의1</label>
-                  <input type="text" className={styles.input} value={selectedStudy.report.reader1} readOnly />
+                <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                  <button
+                    className={`${styles.button} ${styles.blueButton}`}
+                    onClick={handleSaveReport}
+                    disabled={saving}
+                  >
+                    {saving ? '저장 중...' : '저장'}
+                  </button>
                 </div>
+                {saveError && <p style={{ color: 'red', marginTop: '1rem' }}>저장 실패: {saveError.message}</p>}
               </>
             ) : (
               <p className={styles.placeholderText}>검사를 선택하면 리포트 내용을 볼 수 있습니다.</p>

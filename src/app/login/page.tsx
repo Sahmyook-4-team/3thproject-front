@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import styles from './login.module.css';
-import { useAuth } from '../context/AuthContext';
+import { useAuth } from '../../context/AuthContext';
 import api from '../utils/api';
 
 // 1. 응답 데이터의 타입을 정의
