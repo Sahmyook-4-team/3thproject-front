@@ -9,20 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@cornerstonejs/codec-charls": "^1.2.3",
     "@apollo/client": "3.10.4",
-    "@cornerstonejs/core": "^3.32.12",
+    "@cornerstonejs/codec-charls": "^1.2.3",
+    "@cornerstonejs/core": "^3.33.2",
     "@cornerstonejs/dicom-image-loader": "^3.33.2",
-    "@cornerstonejs/tools": "^3.32.12",
+    "@cornerstonejs/tools": "^3.33.2",
     "axios": "^1.11.0",
-    "cornerstone-wado-image-loader": "^4.13.2",
     "dicom-parser": "^1.8.21",
+    "graphql": "^16.11.0",
     "jwt-decode": "^4.0.0",
     "next": "15.4.6",
     "react": "19.1.0",
-    "react-dom": "19.1.0",
-    "graphql": "^16.11.0",
-    "jwt-decode": "^4.0.0"
+    "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
