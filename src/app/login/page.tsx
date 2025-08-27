@@ -23,7 +23,7 @@ export default function LoginPage() {
     setError('');
     try {
       // 2. api.post<LoginResponse> 처럼 제네릭으로 타입을 지정
-      const response = await api.post<LoginResponse>('/auth/login', {
+      const response = await api.post<LoginResponse>('/api/auth/login', {
         userid: userId,
         password: password,
       });

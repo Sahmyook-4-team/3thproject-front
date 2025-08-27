@@ -1,16 +1,17 @@
-// --- [핵심 수정] 필요한 모든 것을 @apollo/client에서 직접 import 합니다. ---
+// src/lib/apollo-client.ts
+
 import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 
-// 백엔드 GraphQL 서버 주소
 const httpLink = createHttpLink({
   uri: 'http://localhost:8080/graphql', 
 });
 
-// 모든 요청에 JWT 토큰을 포함시키는 설정
 const authLink = setContext((_, { headers }) => {
-  // localStorage에서 토큰을 가져옵니다. (로그인 시 저장했다고 가정)
-  const token = localStorage.getItem('token');
+  // --- [핵심 수정] ---
+  // 키 이름을 'token'에서 'accessToken'으로 변경하여 AuthContext와 일치시킵니다.
+  const token = localStorage.getItem('accessToken'); 
+
   return {
     headers: {
       ...headers,
