@@ -21,9 +21,10 @@ const ENCODED_PATH_EXAMPLE = 'MjAyNTA4XDEyXE1TMDAwM1xDUlwxXC9DUi4xLjIuMzkyLjIwMD
 
 interface DicomViewerProps {
   patientId: string;
+  studyId?: string;
 }
 
-export default function DicomViewer({ patientId }: DicomViewerProps) {
+export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
   const viewerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -47,13 +48,44 @@ export default function DicomViewer({ patientId }: DicomViewerProps) {
       }
 
       try {
+        // DICOM 파일 검증
+        try {
+          // TODO: Replace with actual API call using patientId and studyId
+          const imagePath = ENCODED_PATH_EXAMPLE;
+          const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${imagePath}`;
+          const response = await fetch(imageUrl, {
+            headers: {
+              'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+            }
+          });
+
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+
+          const arrayBuffer = await response.arrayBuffer();
+          const byteArray = new Uint8Array(arrayBuffer);
+          const dataSet = dicomParser.parseDicom(byteArray);
+
+          console.log('DICOM 파일 검증 성공:', {
+            sopClassUid: dataSet.string('x00080016'),
+            modality: dataSet.string('x00080060'),
+            rows: dataSet.uint16('x00280010'),
+            columns: dataSet.uint16('x00280011')
+          });
+        } catch (parseError) {
+          console.error('DICOM 파일 검증 실패:', parseError);
+          return; // 검증 실패 시 뷰어 초기화 중단
+        }
+
+
         await coreInit();
         await dicomImageLoaderInit();
         await csToolsInit();
 
         cornerstoneWADOImageLoader.external.cornerstone = cornerstone;
         cornerstoneWADOImageLoader.external.dicomParser = dicomParser;
-        
+
         cornerstoneWADOImageLoader.configure({
           beforeSend: (xhr: XMLHttpRequest) => {
             const token = localStorage.getItem('accessToken');
@@ -73,7 +105,7 @@ export default function DicomViewer({ patientId }: DicomViewerProps) {
             },
           },
         });
-        
+
         renderingEngine = getRenderingEngine(renderingEngineId);
         if (!renderingEngine) {
           renderingEngine = new RenderingEngine(renderingEngineId);
@@ -85,12 +117,12 @@ export default function DicomViewer({ patientId }: DicomViewerProps) {
           type: Enums.ViewportType.STACK,
         };
         renderingEngine.enableElement(viewportInput);
-        
+
         // --- [수정 제안 1] 뷰포트 리사이즈 호출 ---
         renderingEngine.resize(true, true);
-        
+
         const viewport = renderingEngine.getViewport(viewportId) as StackViewport;
-        
+
         const imageId = `wadors:${API_BASE_URL}/images/encoded-view?encodedPath=${ENCODED_PATH_EXAMPLE}`;
 
         await viewport.setStack([imageId]);
@@ -101,7 +133,7 @@ export default function DicomViewer({ patientId }: DicomViewerProps) {
         const voi = { windowWidth: 400, windowCenter: 40 }; // 복부 CT의 일반적인 값
         const voiRange = { lower: voi.windowCenter - voi.windowWidth / 2, upper: voi.windowCenter + voi.windowWidth / 2 };
         viewport.setProperties({ voiRange });
-        
+
         renderingEngine.render();
         console.log("API를 통해 DICOM 파일 렌더링 성공!");
 
@@ -109,7 +141,7 @@ export default function DicomViewer({ patientId }: DicomViewerProps) {
         console.error('DICOM 뷰어 초기화 또는 파일 로딩 중 오류 발생:', error);
       }
     };
-    
+
     // 이벤트 리스너 등록
     eventTarget.addEventListener(Enums.Events.IMAGE_LOADED, handleImageLoaded);
     eventTarget.addEventListener(Enums.Events.IMAGE_LOAD_FAILED, handleImageLoadFailed);
@@ -120,7 +152,7 @@ export default function DicomViewer({ patientId }: DicomViewerProps) {
       // 이벤트 리스너 정리
       eventTarget.removeEventListener(Enums.Events.IMAGE_LOADED, handleImageLoaded);
       eventTarget.removeEventListener(Enums.Events.IMAGE_LOAD_FAILED, handleImageLoadFailed);
-      
+
       try {
         if (renderingEngine) {
           renderingEngine.destroy();

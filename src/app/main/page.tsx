@@ -74,6 +74,10 @@ export default function MainPage() {
   }, [selectedStudy]);
 
   // 이벤트 핸들러
+  const navigateToPatientDetail = (patientId: string) => {
+    router.push(`/patient/${patientId}`);
+  };
+
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchInput(prev => ({ ...prev, [name]: value }));
@@ -87,6 +91,10 @@ export default function MainPage() {
   };
   const handleRowClick = (study: Study) => {
     setSelectedStudy(study);
+  };
+
+  const handleRowDoubleClick = (patientId: string, study: Study) => {
+    router.push(`/viewer/${patientId}?studyId=${study.studyKey}`);
   };
   const handleReportContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setReportContentInput(e.target.value);
@@ -212,10 +220,27 @@ export default function MainPage() {
                   <tr
                     key={study.studyKey}
                     onClick={() => handleRowClick(study)}
-                    className={selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''}
+                    onDoubleClick={() => handleRowDoubleClick(patientData.pid, study)}
+                    className={`${selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''} ${styles.clickableRow}`}
                   >
-                    <td>{patientData.pid}</td>
-                    <td>{patientData.pname}</td>
+                    <td 
+                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToPatientDetail(patientData.pid);
+                      }}
+                    >
+                      {patientData.pid}
+                    </td>
+                    <td 
+                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToPatientDetail(patientData.pid);
+                      }}
+                    >
+                      {patientData.pname}
+                    </td>
                     <td>{study.modality}</td>
                     <td>{study.studydesc}</td>
                     <td>{`${study.studydate} ${study.studytime}`}</td>
