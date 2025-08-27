@@ -178,3 +178,83 @@
   text-align: center;
   margin-top: 2rem;
 }
+
+.historyTable {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+.historyTable th,
+.historyTable td {
+  border: 1px solid #555; /* 테두리 색상도 살짝 어둡게 */
+  padding: 8px;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.historyTable th {
+  background-color: #4A5568; /* 어두운 회색 계열 배경 */
+  color: #E2E8F0; /* 밝은 회색 글씨 */
+}
+
+.historyTable td {
+  background-color: #2D3748; /* 헤더보다 살짝 밝은 배경 */
+  color: #CBD5E0; /* 글씨 색상 */
+}
+
+.blueButton {
+  background-color: #3182ce;
+  color: white;
+}
+
+.blueButton:hover {
+  background-color: #2b6cb0;
+}
+.rightContent {
+  display: flex;
+  flex-direction: column; /* 헤더를 위, 메인 콘텐츠를 아래로 배치 */
+  overflow: hidden;
+}
+
+/* --- 헤더 스타일 --- */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.8rem 1.5rem;
+  background-color: #333;
+  border-bottom: 1px solid #444;
+  flex-shrink: 0;
+}
+
+.userInfo {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.logoutButton {
+  background-color: #555;
+  border: 1px solid #666;
+}
+
+.logoutButton:hover {
+  background-color: #666;
+}
+.patientInfo {
+  display: flex;
+  gap: 2rem;
+  margin-bottom: 1rem;
+}
+
+.infoItem {
+  color: #ccc;
+  font-size: 0.95rem;
+  padding-left: 10px;
+  border-left: 3px solid #e53e3e; 
+}
+
+.infoItem strong {
+  color: #f0f0f0;
+}
