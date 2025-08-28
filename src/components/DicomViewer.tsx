@@ -1,24 +1,27 @@
-'use client';
+// @ts-nocheck
 
 import React, { useEffect, useRef } from 'react';
-import {
-  Enums,
-  init as coreInit,
-  RenderingEngine,
-  StackViewport,
-  getRenderingEngine,
-  eventTarget, // 이벤트 타겟 추가
-} from '@cornerstonejs/core';
-import {
-  init as dicomImageLoaderInit
-} from '@cornerstonejs/dicom-image-loader';
-
-import dicomParser from 'dicom-parser';
-import { init as csToolsInit } from '@cornerstonejs/tools';
+import { Enums, init as coreInit, RenderingEngine } from '@cornerstonejs/core';
+import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader';
+import { init, Enums as toolsEnums, ToolGroupManager } from '@cornerstonejs/tools';
+import * as csTools3d from '@cornerstonejs/tools';
 import styles from './DicomViewer.module.css';
+
+const { PanTool, ZoomTool, StackScrollTool, WindowLevelTool } = csTools3d;
 
 const API_BASE_URL = 'http://localhost:8080/api';
 const ENCODED_PATH_EXAMPLE = 'MjAyNTA4XDEyXE1TMDAwM1xDUlwxXC9DUi4xLjIuMzkyLjIwMDAzNi45MTA3LjUwMC4zMDQuODE3LjIwMjAwMzMwLjk1ODM1LjEwODE3LmRjbQ%3D%3D';
+
+// Cornerstone 초기화를 위한 별도의 함수
+// 컴포넌트 외부에서 한 번만 실행되도록 설정할 수 있습니다.
+const initCornerstone = async () => {
+  await coreInit();
+  await dicomImageLoaderInit();
+  await init();
+};
+
+// Cornerstone 초기화 상태를 추적하기 위한 변수
+let isCornerstoneInitialized = false;
 
 interface DicomViewerProps {
   patientId: string;
@@ -26,144 +29,118 @@ interface DicomViewerProps {
 }
 
 export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
-  const viewerRef = useRef<HTMLDivElement>(null);
+  const elementRef = useRef(null);
+  const renderingEngineRef = useRef(null);
+  const toolGroupRef = useRef(null);
 
+  // 컴포넌트가 마운트될 때 Cornerstone를 초기화합니다.
   useEffect(() => {
-    const renderingEngineId = 'dicom-viewer-engine-' + patientId;
-    const viewportId = 'CT_AXIAL_VIEWPORT-' + patientId;
-    let renderingEngine: RenderingEngine | undefined;
-
-    // --- [디버깅 추가] 이미지 로드 이벤트 리스너 ---
-    const handleImageLoaded = (e: any) => {
-      console.log('Cornerstone Image Loaded:', e.detail);
-    };
-    const handleImageLoadFailed = (e: any) => {
-      console.error('Cornerstone Image Load Failed:', e.detail);
-    };
-
-    const initViewer = async () => {
-      if (!viewerRef.current) return;
-      if (!viewerRef.current.clientWidth || !viewerRef.current.clientHeight) {
-        console.warn('뷰어 div의 크기가 0입니다. CSS에서 width와 height를 설정했는지 확인하세요.');
-        return;
+    const initialize = async () => {
+      if (!isCornerstoneInitialized) {
+        await initCornerstone();
+        isCornerstoneInitialized = true;
       }
 
-      try {
-        // DICOM 파일 검증
-        try {
-          // TODO: Replace with actual API call using patientId and studyId
-          const imagePath = ENCODED_PATH_EXAMPLE;
-          const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${imagePath}`;
-          const response = await fetch(imageUrl, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-            }
-          });
+      // 사용할 툴 등록
+      csTools3d.addTool(PanTool);
+      csTools3d.addTool(ZoomTool);
+      csTools3d.addTool(StackScrollTool);
+      csTools3d.addTool(WindowLevelTool);
 
-          if (!response.ok) {
-            // 서버가 4xx, 5xx 에러를 보낸 경우
-            const errorBody = await response.text(); // 에러 메시지를 확인하기 위해 text로 읽음
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
-          }
+      // 렌더링 엔진과 툴 그룹이 없으면 생성합니다.
+      if (!renderingEngineRef.current) {
+        const renderingEngineId = 'myRenderingEngine';
+        renderingEngineRef.current = new RenderingEngine(renderingEngineId);
 
-          // --- [수정 제안] Content-Type 헤더 확인 ---
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/dicom')) {
-            console.warn('응답이 DICOM 파일이 아닐 수 있습니다. Content-Type:', contentType);
-            // 만약 JSON 에러가 오는 경우를 대비해 추가적인 분기 처리를 할 수 있습니다.
-          }
+        const toolGroupId = 'ctToolGroup';
+        toolGroupRef.current = ToolGroupManager.createToolGroup(toolGroupId);
 
-          const arrayBuffer = await response.arrayBuffer();
-          // --- [수정 제안] Array Buffer 확인 ---
-          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-            throw new Error('ArrayBuffer가 비어있거나 null입니다.');
-          }
+        // 툴 그룹에 툴 추가
+        toolGroupRef.current.addTool(PanTool.toolName);
+        toolGroupRef.current.addTool(ZoomTool.toolName);
+        toolGroupRef.current.addTool(StackScrollTool.toolName);
+        toolGroupRef.current.addTool(WindowLevelTool.toolName);
 
-          const byteArray = new Uint8Array(arrayBuffer);
-          const dataSet = dicomParser.parseDicom(byteArray);
-
-          console.log('DICOM 파일 검증 성공:', {
-            sopClassUid: dataSet.string('x00080016'),
-            modality: dataSet.string('x00080060'),
-            rows: dataSet.uint16('x00280010'),
-            columns: dataSet.uint16('x00280011')
-          });
-        } catch (parseError) {
-          console.error('DICOM 파일 검증 실패:', parseError);
-          return; // 검증 실패 시 뷰어 초기화 중단
-        }
-
-        await coreInit();
-        await csToolsInit();
-
-        await dicomImageLoaderInit({
-          beforeSend: (xhr: XMLHttpRequest, imageId: string) => {
-            console.log('Intercepting request for imageId:', imageId);
-            const token = localStorage.getItem('accessToken');
-            if (token) {
-              xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-            }
-          }
+        // 툴 모드 설정
+        toolGroupRef.current.setToolActive(WindowLevelTool.toolName, {
+          bindings: [{ mouseButton: toolsEnums.MouseBindings.Primary }],
         });
-
-
-        renderingEngine = getRenderingEngine(renderingEngineId);
-        if (!renderingEngine) {
-          renderingEngine = new RenderingEngine(renderingEngineId);
-        }
-
-        const viewportInput = {
-          viewportId: viewportId,
-          element: viewerRef.current,
-          type: Enums.ViewportType.STACK,
-        };
-        renderingEngine.enableElement(viewportInput);
-
-        // --- [수정 제안 1] 뷰포트 리사이즈 호출 ---
-        renderingEngine.resize(true, true);
-
-        const viewport = renderingEngine.getViewport(viewportId) as StackViewport;
-
-        const imageId = `wadors:${API_BASE_URL}/images/encoded-view?encodedPath=${ENCODED_PATH_EXAMPLE}`;
-
-        await viewport.setStack([imageId]);
-
-        // --- [수정 제안 2] 수동으로 VOI 설정 ---
-        // 이 값은 실제 DICOM 이미지에 맞게 조절해야 합니다.
-        // 예를 들어, CT 이미지의 뼈를 보려면 { lower: 200, upper: 1000 } 등으로 설정합니다.
-        const voi = { windowWidth: 400, windowCenter: 40 }; // 복부 CT의 일반적인 값
-        const voiRange = { lower: voi.windowCenter - voi.windowWidth / 2, upper: voi.windowCenter + voi.windowWidth / 2 };
-        viewport.setProperties({ voiRange });
-
-        renderingEngine.render();
-        console.log("API를 통해 DICOM 파일 렌더링 성공!");
-
-      } catch (error) {
-        console.error('DICOM 뷰어 초기화 또는 파일 로딩 중 오류 발생:', error);
+        toolGroupRef.current.setToolActive(PanTool.toolName, {
+          bindings: [{ mouseButton: toolsEnums.MouseBindings.Primary, modifierKey: toolsEnums.KeyboardBindings.Ctrl }],
+        });
+        toolGroupRef.current.setToolActive(ZoomTool.toolName, {
+          bindings: [{ mouseButton: toolsEnums.MouseBindings.Secondary }],
+        });
+        toolGroupRef.current.setToolActive(StackScrollTool.toolName);
       }
     };
 
-    // 이벤트 리스너 등록
-    eventTarget.addEventListener(Enums.Events.IMAGE_LOADED, handleImageLoaded);
-    eventTarget.addEventListener(Enums.Events.IMAGE_LOAD_FAILED, handleImageLoadFailed);
-
-    initViewer();
-
+    initialize();
+    // 컴포넌트가 언마운트될 때 리소스를 정리합니다.
     return () => {
-      // 이벤트 리스너 정리
-      eventTarget.removeEventListener(Enums.Events.IMAGE_LOADED, handleImageLoaded);
-      eventTarget.removeEventListener(Enums.Events.IMAGE_LOAD_FAILED, handleImageLoadFailed);
-
-      try {
-        if (renderingEngine) {
-          renderingEngine.destroy();
-        }
-      } catch (e) {
-        console.warn("렌더링 엔진 정리 중 오류:", e);
+      if (renderingEngineRef.current) {
+        renderingEngineRef.current.destroy();
+        renderingEngineRef.current = null;
+      }
+      if (toolGroupRef.current) {
+        ToolGroupManager.destroyToolGroup(toolGroupRef.current.id);
+        toolGroupRef.current = null;
       }
     };
+  }, []);
 
-  }, [patientId]);
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        const arrayBuffer = reader.result;
+        render(arrayBuffer);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+  };
 
-  return <div ref={viewerRef} className={styles.viewer} />;
+  const render = async (arrayBuffer) => {
+    if (!elementRef.current || !renderingEngineRef.current || !toolGroupRef.current) {
+      return;
+    }
+
+    // 기존 뷰포트가 있다면 비활성화하고 제거합니다.
+    const viewportId = 'CT_AXIAL_STACK';
+    renderingEngineRef.current.disableElement(viewportId);
+
+    // 이미지 ID 생성
+    const url = URL.createObjectURL(new Blob([arrayBuffer]), { type: 'application/dicom' });
+    const imageId = `dicomweb:${url}`;
+    const imageIds = [imageId];
+
+    const viewportInput = {
+      viewportId,
+      element: elementRef.current,
+      type: Enums.ViewportType.STACK,
+    };
+
+    renderingEngineRef.current.enableElement(viewportInput);
+
+    // 툴 그룹에 뷰포트 추가
+    toolGroupRef.current.addViewport(viewportId, renderingEngineRef.current.id);
+
+    const viewport = renderingEngineRef.current.getViewport(viewportId);
+    await viewport.setStack(imageIds);
+    viewport.render();
+  };
+
+
+  return (
+    <div>
+      <input type="file" id="file" onChange={handleFileChange} />
+      <div
+        id="content"
+        ref={elementRef}
+        style={{ width: '500px', height: '500px', backgroundColor: 'purple', marginTop: '10px' }}
+      ></div>
+    </div>
+  );
+
 }
