@@ -83,7 +83,7 @@
 }
 
 .viewer {
-  width: 100%;
-  height: 100%;
+  width: 800px;
+  height: 800px;
   border: 1px solid #555;
 }

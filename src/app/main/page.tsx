@@ -90,6 +90,12 @@ export default function MainPage() {
     }
   }, [selectedStudy]);
 
+  // 이벤트 핸들러
+  const navigateToPatientDetail = (patientId: string) => {
+    router.push(`/patient/${patientId}`);
+  };
+
+
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchInput(prev => ({ ...prev, [name]: value }));
@@ -122,6 +128,10 @@ export default function MainPage() {
   
   const handleStudyRowClick = (study: Study) => {
     setSelectedStudy(study);
+  };
+
+  const handleRowDoubleClick = (patientId: string, study: Study) => {
+    router.push(`/viewer/${patientId}?studyId=${study.studyKey}`);
   };
 
   const handleReportContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -205,7 +215,67 @@ export default function MainPage() {
             </div>
           </section>
 
-          {/* [변경] 인라인 스타일을 제거하고 CSS 클래스(.leftColumn, .rightColumn)를 사용 */}
+          {/* 중간 검사 결과 패널 */}
+          <section className={`${styles.panel} ${styles.resultsPanel}`}>
+            <h2 className={styles.panelTitle}>
+              총 검사 건수 : {patientData?.studies?.length ?? 0}
+            </h2>
+            <table>
+              <thead>
+                <tr>
+                  <th>환자 아이디</th>
+                  <th>환자 이름</th>
+                  <th>검사장비</th>
+                  <th>검사설명</th>
+                  <th>검사일시</th>
+                  <th>판독상태</th>
+                  <th>시리즈</th>
+                  <th>이미지</th>
+                  <th>Verify</th>
+                </tr>
+              </thead>
+              <tbody>
+                {patientData?.studies.map((study) => (
+                  <tr
+                    key={study.studyKey}
+                    onClick={() => handleRowClick(study)}
+                    onDoubleClick={() => handleRowDoubleClick(patientData.pid, study)}
+                    className={`${selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''} ${styles.clickableRow}`}
+                  >
+                    <td 
+                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToPatientDetail(patientData.pid);
+                      }}
+                    >
+                      {patientData.pid}
+                    </td>
+                    <td 
+                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        navigateToPatientDetail(patientData.pid);
+                      }}
+                    >
+                      {patientData.pname}
+                    </td>
+                    <td>{study.modality}</td>
+                    <td>{study.studydesc}</td>
+                    <td>{`${study.studydate} ${study.studytime}`}</td>
+                    <td>{formatReportStatus(study.report?.reportStatus)}</td>
+                    <td>{study.seriescnt}</td>
+                    <td>{study.imagecnt}</td>
+                    <td>-</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            {error && <p style={{ color: 'red' }}>데이터 로딩 실패: {error.message}</p>}
+          </section>
+          
+          {/* 하단 상세 정보 패널 */}
+
           <div className={styles.bottomSection}>
             
             {/* 왼쪽 컬럼: 환자 목록 + 검사 목록 */}
