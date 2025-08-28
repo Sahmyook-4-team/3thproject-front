@@ -9,7 +9,7 @@ import { SEARCH_PATIENTS } from '@/graphql/queries';
 import { CREATE_OR_UPDATE_REPORT } from '@/graphql/mutations';
 import styles from './main.module.css';
 
-// --- TypeScript 타입 정의 (기존과 동일) ---
+// --- TypeScript 타입 정의 (변경 없음) ---
 interface Author {
   username: string;
 }
@@ -39,7 +39,7 @@ export default function MainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
-  // --- 상태 관리, Hooks, 핸들러 등 모든 로직은 기존과 동일합니다 ---
+  // --- 상태 관리, Hooks 등 로직 부분 ---
   const [searchInput, setSearchInput] = useState({ patientId: '', patientName: '' });
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
@@ -90,12 +90,7 @@ export default function MainPage() {
     }
   }, [selectedStudy]);
 
-  // 이벤트 핸들러
-  const navigateToPatientDetail = (patientId: string) => {
-    router.push(`/patient/${patientId}`);
-  };
-
-
+  // --- 이벤트 핸들러 ---
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchInput(prev => ({ ...prev, [name]: value }));
@@ -129,9 +124,11 @@ export default function MainPage() {
   const handleStudyRowClick = (study: Study) => {
     setSelectedStudy(study);
   };
-
-  const handleRowDoubleClick = (patientId: string, study: Study) => {
-    router.push(`/viewer/${patientId}?studyId=${study.studyKey}`);
+  
+  // [수정] 더블클릭 핸들러를 새로운 방식에 맞게 변경
+  const handleStudyRowDoubleClick = (study: Study) => {
+    if (!selectedPatient) return; // 선택된 환자가 없으면 아무것도 안 함
+    router.push(`/viewer/${selectedPatient.pid}?studyId=${study.studyKey}`);
   };
 
   const handleReportContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -166,7 +163,6 @@ export default function MainPage() {
     return <div>Loading...</div>;
   }
 
-  // --- [핵심] JSX 렌더링 구조 수정 ---
   return (
     <div className={styles.container}>
       {/* 왼쪽 사이드바 (변경 없음) */}
@@ -190,7 +186,6 @@ export default function MainPage() {
         </div>
       </aside>
       
-      {/* 오른쪽 콘텐츠 전체 (변경 없음) */}
       <div className={styles.rightContent}>
         <header className={styles.header}>
             <div></div>
@@ -202,7 +197,6 @@ export default function MainPage() {
             </div>
         </header>
 
-        {/* 메인 콘텐츠 (변경 없음) */}
         <main className={styles.mainContent}>
           <section className={`${styles.panel} ${styles.searchPanel}`}>
             <h2 className={styles.panelTitle}>검색</h2>
@@ -215,74 +209,14 @@ export default function MainPage() {
             </div>
           </section>
 
-          {/* 중간 검사 결과 패널 */}
-          <section className={`${styles.panel} ${styles.resultsPanel}`}>
-            <h2 className={styles.panelTitle}>
-              총 검사 건수 : {patientData?.studies?.length ?? 0}
-            </h2>
-            <table>
-              <thead>
-                <tr>
-                  <th>환자 아이디</th>
-                  <th>환자 이름</th>
-                  <th>검사장비</th>
-                  <th>검사설명</th>
-                  <th>검사일시</th>
-                  <th>판독상태</th>
-                  <th>시리즈</th>
-                  <th>이미지</th>
-                  <th>Verify</th>
-                </tr>
-              </thead>
-              <tbody>
-                {patientData?.studies.map((study) => (
-                  <tr
-                    key={study.studyKey}
-                    onClick={() => handleRowClick(study)}
-                    onDoubleClick={() => handleRowDoubleClick(patientData.pid, study)}
-                    className={`${selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''} ${styles.clickableRow}`}
-                  >
-                    <td 
-                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigateToPatientDetail(patientData.pid);
-                      }}
-                    >
-                      {patientData.pid}
-                    </td>
-                    <td 
-                      style={{ cursor: 'pointer', color: 'blue', textDecoration: 'underline' }}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        navigateToPatientDetail(patientData.pid);
-                      }}
-                    >
-                      {patientData.pname}
-                    </td>
-                    <td>{study.modality}</td>
-                    <td>{study.studydesc}</td>
-                    <td>{`${study.studydate} ${study.studytime}`}</td>
-                    <td>{formatReportStatus(study.report?.reportStatus)}</td>
-                    <td>{study.seriescnt}</td>
-                    <td>{study.imagecnt}</td>
-                    <td>-</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            {error && <p style={{ color: 'red' }}>데이터 로딩 실패: {error.message}</p>}
-          </section>
-          
-          {/* 하단 상세 정보 패널 */}
+          {/* [핵심 수정] 중간에 있던 불필요한 검사 결과 패널을 완전히 삭제했습니다. */}
 
+          {/* 하단 상세 정보 패널 (새로운 방식으로 통일) */}
           <div className={styles.bottomSection}>
             
             {/* 왼쪽 컬럼: 환자 목록 + 검사 목록 */}
             <div className={styles.leftColumn}>
               
-              {/* 환자 검색 결과 패널 */}
-              {/* [변경] 환자 목록 패널에 고정 높이를 제어할 .patientListPanel 클래스 추가 */}
               <section className={`${styles.panel} ${styles.resultsPanel} ${styles.patientListPanel}`}>
                 <h2 className={styles.panelTitle}>환자 검색 결과 : {searchResults.length} 명</h2>
                 <div className={styles.tableContainer}>
@@ -302,16 +236,16 @@ export default function MainPage() {
                 </div>
               </section>
 
-              {/* 선택된 환자의 검사 목록 패널 */}
-          {/* [변경] .studyListPanel 클래스를 추가하여 남은 공간을 채우도록 설정 */}
-          <section className={`${styles.panel} ${styles.resultsPanel} ${styles.studyListPanel}`}>
-            <h2 className={styles.panelTitle}>총 검사 건수 : {selectedPatient?.studies?.length ?? 0}</h2>
+              <section className={`${styles.panel} ${styles.resultsPanel} ${styles.studyListPanel}`}>
+                <h2 className={styles.panelTitle}>총 검사 건수 : {selectedPatient?.studies?.length ?? 0}</h2>
                 <div className={styles.tableContainer}>
                   <table>
                     <thead><tr><th>검사장비</th><th>검사설명</th><th>검사일시</th><th>판독상태</th></tr></thead>
                     <tbody>
                       {selectedPatient?.studies.map((study) => (
-                        <tr key={study.studyKey} onClick={() => handleStudyRowClick(study)}
+                        <tr key={study.studyKey} 
+                            onClick={() => handleStudyRowClick(study)}
+                            onDoubleClick={() => handleStudyRowDoubleClick(study)} // [수정] 더블클릭 이벤트 추가
                             className={selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''}>
                           <td>{study.modality}</td>
                           <td>{study.studydesc}</td>
@@ -327,7 +261,6 @@ export default function MainPage() {
             
             {/* 오른쪽 컬럼: 상세 정보 + 리포트 */}
             <div className={styles.rightColumn}>
-                {/* 상세 정보 패널 */}
                 <section className={styles.panel}>
                   <h2 className={styles.panelTitle}>상세 정보</h2>
                   {selectedStudy ? (
@@ -353,7 +286,6 @@ export default function MainPage() {
                   ) : (<p className={styles.placeholderText}>검사를 선택하면 상세 정보를 볼 수 있습니다.</p>)}
                 </section>
                 
-                {/* 리포트 패널 */}
                 <section className={`${styles.panel} ${styles.reportPanel}`}>
                    <h2 className={styles.panelTitle}>리포트</h2>
                    {selectedStudy ? (
@@ -366,7 +298,7 @@ export default function MainPage() {
                       <div style={{ marginTop: '1rem' }}>
                           <label>판독의</label>
                           <input type="text" className={styles.input}
-                              value={selectedStudy.report?.author?.username ?? user?.username ?? '미지정'} readOnly />
+                              value={selectedStudy.report?.author?.username ?? user?.username ?? '미정'} readOnly />
                       </div>
       
                       <div style={{ marginTop: '1rem', textAlign: 'right' }}>
