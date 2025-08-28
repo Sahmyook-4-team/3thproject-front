@@ -194,7 +194,7 @@ export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
       <div
         id="content"
         ref={elementRef}
-        style={{ width: '500px', height: '500px', backgroundColor: 'purple', marginTop: '10px' }}
+        style={{ width: '80vmin', height: '80vmin', backgroundColor: 'purple', marginTop: '10px' }}
       ></div>
     </div>
   );
