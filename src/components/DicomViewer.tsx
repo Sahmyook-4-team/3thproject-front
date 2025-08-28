@@ -6,11 +6,12 @@ import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader'
 import { init, Enums as toolsEnums, ToolGroupManager } from '@cornerstonejs/tools';
 import * as csTools3d from '@cornerstonejs/tools';
 import styles from './DicomViewer.module.css';
+import * as dicomParser from 'dicom-parser'; 
 
 const { PanTool, ZoomTool, StackScrollTool, WindowLevelTool } = csTools3d;
 
 const API_BASE_URL = 'http://localhost:8080/api';
-const ENCODED_PATH_EXAMPLE = 'MjAyNTA4XDEyXE1TMDAwM1xDUlwxXC9DUi4xLjIuMzkyLjIwMDAzNi45MTA3LjUwMC4zMDQuODE3LjIwMjAwMzMwLjk1ODM1LjEwODE3LmRjbQ%3D%3D';
+const ENCODED_PATH_EXAMPLE = "MjAyNTA4XDEyXE1TMDAwNFxDVFwzXC9DVC4xLjMuMTIuMi4xMTA3LjUuMS40LjY1MjY2LjMwMDAwMDE4MTIyNzIxNTk1ODIzOTAwMDI2MzY3LmRjbQ==";
 
 // Cornerstone 초기화를 위한 별도의 함수
 // 컴포넌트 외부에서 한 번만 실행되도록 설정할 수 있습니다.
@@ -89,6 +90,11 @@ export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
     };
   }, []);
 
+
+
+
+
+
   const handleFileChange = (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -100,6 +106,53 @@ export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
       reader.readAsArrayBuffer(file);
     }
   };
+
+  const handleApiFetchAndRender = async () => {
+    try {
+      // 1. API 요청 URL 생성
+      // TODO: 실제 patientId와 studyId를 사용하여 동적으로 경로를 생성해야 합니다.
+      const imagePath = ENCODED_PATH_EXAMPLE;
+      const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${imagePath}`;
+
+      console.log(`Requesting DICOM file from: ${imageUrl}`);
+
+      // 2. fetch API를 사용하여 서버에 DICOM 파일 요청
+      const response = await fetch(imageUrl, {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
+        }
+      });
+
+      // 3. HTTP 응답 상태 확인
+      if (!response.ok) {
+        const errorBody = await response.text();
+        throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
+      }
+
+      // 4. 응답 본문을 ArrayBuffer(바이너리 데이터) 형태로 변환
+      const arrayBuffer = await response.arrayBuffer();
+      if (!arrayBuffer || arrayBuffer.byteLength === 0) {
+        throw new Error('서버에서 받은 ArrayBuffer가 비어있습니다.');
+      }
+
+      // 5. (선택적) 받은 데이터가 실제 DICOM 파일인지 파싱하여 검증
+      const byteArray = new Uint8Array(arrayBuffer);
+      const dataSet = dicomParser.parseDicom(byteArray);
+      console.log('API 응답 DICOM 파일 검증 성공:', dataSet.string('x00080060')); // Modality 태그
+
+      // 6. 가져온 데이터로 렌더링 함수 호출
+      // 성공적으로 ArrayBuffer를 가져왔으면, 이 데이터를 뷰어에 렌더링하도록 render 함수에 전달합니다.
+      render(arrayBuffer);
+
+    } catch (error) {
+      console.error('API에서 DICOM 파일을 가져오는 중 오류 발생:', error);
+      alert('파일을 불러오는 데 실패했습니다. 콘솔을 확인해주세요.');
+    }
+  };
+
+
+
+
 
   const render = async (arrayBuffer) => {
     if (!elementRef.current || !renderingEngineRef.current || !toolGroupRef.current) {
@@ -134,7 +187,10 @@ export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
 
   return (
     <div>
-      <input type="file" id="file" onChange={handleFileChange} />
+      {/* 사용자가 파일을 선택하는 대신, 버튼을 클릭하여 API 요청을 보냅니다. */}
+      <button onClick={handleApiFetchAndRender} className={styles.fetchButton}>
+        API에서 DICOM 파일 불러오기
+      </button>
       <div
         id="content"
         ref={elementRef}
