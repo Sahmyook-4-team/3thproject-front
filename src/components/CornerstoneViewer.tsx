@@ -1,14 +1,13 @@
 // @ts-nocheck
-// 파일: CornerstoneViewer.tsx
+// 파일: src/components/CornerstoneViewer.tsx
 
 import React, { useEffect, useRef, useState } from 'react';
 import { Enums, init as coreInit, RenderingEngine } from '@cornerstonejs/core';
 import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader';
 import * as csTools3d from '@cornerstonejs/tools';
 
-const { PanTool, ZoomTool, StackScrollTool, WindowLevelTool, ToolGroupManager } = csTools3d;
+const { PanTool, ZoomTool, StackScrollTool, WindowLevelTool, ToolGroupManager, Enums: csToolsEnums } = csTools3d;
 
-// 가장 단순하고 깨끗한 초기화 함수
 let isCornerstoneInitialized = false;
 const initCornerstone = async () => {
   if (isCornerstoneInitialized) return;
@@ -20,9 +19,10 @@ const initCornerstone = async () => {
 
 interface CornerstoneViewerProps {
   imageIds: string[];
+  toolGroupId: string;
 }
 
-export default function CornerstoneViewer({ imageIds }: CornerstoneViewerProps) {
+export default function CornerstoneViewer({ imageIds, toolGroupId }: CornerstoneViewerProps) {
   const elementRef = useRef(null);
   const [viewport, setViewport] = useState(null);
 
@@ -39,7 +39,6 @@ export default function CornerstoneViewer({ imageIds }: CornerstoneViewerProps) 
       const viewportInput = { viewportId, element, type: Enums.ViewportType.STACK };
       renderingEngine.enableElement(viewportInput);
       
-      const toolGroupId = 'CT_TOOLGROUP';
       let toolGroup = ToolGroupManager.getToolGroup(toolGroupId);
       if (!toolGroup) {
         toolGroup = ToolGroupManager.createToolGroup(toolGroupId);
@@ -51,10 +50,19 @@ export default function CornerstoneViewer({ imageIds }: CornerstoneViewerProps) 
         toolGroup.addTool(ZoomTool.toolName);
         toolGroup.addTool(StackScrollTool.toolName);
         toolGroup.addTool(WindowLevelTool.toolName);
+
+        // --- [핵심 수정] ---
+        // 모든 도구의 기본 상태를 여기서 명확하게 설정합니다.
+        
+        // 1. 휠 스크롤은 항상 StackScroll로 활성화
         toolGroup.setToolActive(StackScrollTool.toolName);
-        toolGroup.setToolActive(PanTool.toolName, { bindings: [{ mouseButton: csTools3d.Enums.MouseBindings.Auxiliary }] });
-        toolGroup.setToolActive(ZoomTool.toolName, { bindings: [{ mouseButton: csTools3d.Enums.MouseBindings.Secondary }] });
-        toolGroup.setToolActive(WindowLevelTool.toolName, { bindings: [{ mouseButton: csTools3d.Enums.MouseBindings.Primary }] });
+
+        // 2. 다른 마우스 버튼들도 고정된 역할로 활성화
+        toolGroup.setToolActive(ZoomTool.toolName, { bindings: [{ mouseButton: csToolsEnums.MouseBindings.Secondary }] }); // 오른쪽 클릭
+        toolGroup.setToolActive(PanTool.toolName, { bindings: [{ mouseButton: csToolsEnums.MouseBindings.Auxiliary }] }); // 휠 클릭
+
+        // 3. 왼쪽 버튼의 기본값은 WindowLevel로 설정
+        toolGroup.setToolActive(WindowLevelTool.toolName, { bindings: [{ mouseButton: csToolsEnums.MouseBindings.Primary }] });
       }
       
       toolGroup.addViewport(viewportId, renderingEngineId);
@@ -67,20 +75,23 @@ export default function CornerstoneViewer({ imageIds }: CornerstoneViewerProps) 
 
     return () => {
       renderingEngine?.destroy();
-      ToolGroupManager.destroyToolGroup('CT_TOOLGROUP');
+      ToolGroupManager.destroyToolGroup(toolGroupId);
     };
-  }, []);
+  }, [toolGroupId]);
 
+  // 렌더링 useEffect (indexOf 오류 방지를 위해 try/catch 유지)
   useEffect(() => {
     if (!viewport || !imageIds) return;
-
     const renderImageStack = async () => {
-      await viewport.setStack(imageIds);
+      try {
+        await viewport.setStack(imageIds);
+      } catch (error) {
+        console.warn("Ignoring non-critical cornerstone metadata error:", error);
+      }
       if (imageIds.length > 0) {
         viewport.render();
       }
     };
-
     renderImageStack();
   }, [viewport, imageIds]);
 

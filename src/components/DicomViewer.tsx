@@ -1,23 +1,30 @@
 // @ts-nocheck
-// 파일: DicomViewer.tsx
+// 파일: src/components/DicomViewer.tsx
 
 import React, { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
-import { GET_STUDY_DETAILS } from '../graphql/queries';
+import { GET_STUDY_DETAILS } from '../graphql/queries'; // GraphQL 쿼리 경로
 import CornerstoneViewer from './CornerstoneViewer';
-import styles from './DicomViewer.module.css';
-// dicom-parser를 import합니다. (기존 단일 컴포넌트 코드처럼)
-import * as dicomParser from 'dicom-parser';
+import styles from './DicomViewer.module.css'; // 아래에 제공된 CSS 파일
+
+// Cornerstone Tools에서 필요한 기능들을 가져옵니다.
+import { ToolGroupManager, Enums as csToolsEnums } from '@cornerstonejs/tools';
+import * as csTools3d from '@cornerstonejs/tools';
+
+const { PanTool, ZoomTool, WindowLevelTool } = csTools3d;
 
 const API_BASE_URL = 'http://localhost:8080/api';
+const TOOL_GROUP_ID = 'CT_TOOLGROUP'; // 툴 그룹 ID를 상수로 관리
 
-export default function DicomViewer({ studyKey }: StudyViewerProps) {
+export default function DicomViewer({ studyKey }) {
   const [seriesList, setSeriesList] = useState([]);
   const [selectedSeriesKey, setSelectedSeriesKey] = useState(null);
   const [imageIds, setImageIds] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
+  
+  // 현재 활성화된 도구를 추적하는 상태. 기본값은 WindowLevel
+  const [activeTool, setActiveTool] = useState(WindowLevelTool.toolName);
 
-  // ... (GraphQL 쿼리 및 useEffect는 동일)
   const { loading: gqlLoading, error: gqlError, data } = useQuery(GET_STUDY_DETAILS, {
     variables: { studyKey },
     skip: !studyKey,
@@ -32,7 +39,6 @@ export default function DicomViewer({ studyKey }: StudyViewerProps) {
     }
   }, [data]);
 
-
   useEffect(() => {
     if (!selectedSeriesKey) return;
 
@@ -41,7 +47,6 @@ export default function DicomViewer({ studyKey }: StudyViewerProps) {
       setImageIds([]);
 
       try {
-        // 1. 이미지 경로 목록 가져오기
         const listUrl = `${API_BASE_URL}/v1/studies/keys/${studyKey}/${selectedSeriesKey}`;
         const listResponse = await fetch(listUrl, {
           headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` }
@@ -50,7 +55,6 @@ export default function DicomViewer({ studyKey }: StudyViewerProps) {
         const result = await listResponse.json();
         if (!result.data || result.data.length === 0) return;
 
-        // 2. 각 경로에 대해 실제 이미지 파일(ArrayBuffer)을 fetch
         const imagePromises = result.data.map(encodedPath => {
           const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${encodedPath}`;
           return fetch(imageUrl, {
@@ -63,38 +67,14 @@ export default function DicomViewer({ studyKey }: StudyViewerProps) {
 
         const arrayBuffers = await Promise.all(imagePromises);
 
-        // --- [핵심 디버깅 코드] ---
-        // 첫 번째 ArrayBuffer가 유효한 DICOM인지 검사합니다.
-        if (arrayBuffers.length > 0) {
-            console.log('--- 데이터 검증 시작 ---');
-            try {
-                const byteArray = new Uint8Array(arrayBuffers[0]);
-                // 이 라인에서 오류가 발생하면, 서버 데이터가 DICOM이 아닙니다.
-                const dataSet = dicomParser.parseDicom(byteArray);
-                console.log('✅ 데이터 검증 성공! Modality:', dataSet.string('x00080060'));
-            } catch (err) {
-                console.error('❌ 데이터 검증 실패! 서버가 유효한 DICOM 파일을 보내지 않았습니다.', err);
-                // 서버가 보낸 내용을 텍스트로 확인해봅니다.
-                const textDecoder = new TextDecoder('utf-8');
-                const errorText = textDecoder.decode(arrayBuffers[0]);
-                console.error('서버 응답 내용:', errorText);
-                // 여기서 함수를 중단시켜 더 이상 진행하지 않도록 할 수 있습니다.
-                setIsLoading(false);
-                return; 
-            }
-            console.log('--- 데이터 검증 끝 ---');
-        }
-        // --- [디버깅 코드 끝] ---
-
-        // 3. 받아온 ArrayBuffer들로 blob URL을 생성
         const newImageIds = arrayBuffers.map(buffer => {
           const blob = new Blob([buffer], { type: 'application/dicom' });
           const url = URL.createObjectURL(blob);
-          return `dicomweb:${url}`;
+          // 오류 없는 이미지 로드를 위해 'wadouri:' 접두사를 사용합니다.
+          return `wadouri:${url}`;
         });
 
         setImageIds(newImageIds);
-
       } catch (e) {
         console.error("이미지 로딩 중 오류 발생:", e);
       } finally {
@@ -103,20 +83,69 @@ export default function DicomViewer({ studyKey }: StudyViewerProps) {
     };
 
     fetchAndLoadImages();
-
   }, [selectedSeriesKey, studyKey]);
 
-  if (gqlLoading) return <p>시리즈 목록 로딩 중...</p>;
-  if (gqlError) return <p>오류: {gqlError.message}</p>;
+  // activeTool 상태가 변경될 때마다 Cornerstone의 활성 도구를 변경합니다.
+  useEffect(() => {
+    const toolGroup = ToolGroupManager.getToolGroup(TOOL_GROUP_ID);
+    if (!toolGroup) return;
+
+    // 모든 도구를 일단 수동(passive) 모드로 설정
+    toolGroup.setToolPassive(WindowLevelTool.toolName);
+    toolGroup.setToolPassive(PanTool.toolName);
+    toolGroup.setToolPassive(ZoomTool.toolName);
+    
+    // 현재 선택된 도구만 마우스 왼쪽 버튼에 대해 활성화
+    toolGroup.setToolActive(activeTool, {
+      bindings: [{ mouseButton: csToolsEnums.MouseBindings.Primary }],
+    });
+    
+  }, [activeTool]);
 
   return (
     <div className={styles.studyContainer}>
       <div className={styles.seriesSidebar}>
-        {/* ... (사이드바 UI) */}
+        <h3>시리즈 목록</h3>
+        <ul>
+          {seriesList.map((series) => (
+            <li key={series.seriesKey}>
+              <button
+                className={selectedSeriesKey === series.seriesKey ? styles.active : ''}
+                onClick={() => setSelectedSeriesKey(series.seriesKey)}
+              >
+                ({series.modality}) {series.seriesnum}. {series.seriesdesc} ({series.imagecnt}장)
+              </button>
+            </li>
+          ))}
+        </ul>
+        
+        {/* 도구 선택을 위한 툴바 UI */}
+        <div className={styles.toolbar}>
+          <h3>도구</h3>
+          <button 
+            className={activeTool === WindowLevelTool.toolName ? styles.activeTool : ''}
+            onClick={() => setActiveTool(WindowLevelTool.toolName)}
+          >
+            밝기/대조
+          </button>
+          <button 
+            className={activeTool === PanTool.toolName ? styles.activeTool : ''}
+            onClick={() => setActiveTool(PanTool.toolName)}
+          >
+            이동
+          </button>
+          <button 
+            className={activeTool === ZoomTool.toolName ? styles.activeTool : ''}
+            onClick={() => setActiveTool(ZoomTool.toolName)}
+          >
+            확대/축소
+          </button>
+        </div>
       </div>
+
       <div className={styles.viewerContainer}>
         {isLoading && <div className={styles.loadingOverlay}>이미지 로딩 중...</div>}
-        <CornerstoneViewer imageIds={imageIds} />
+        <CornerstoneViewer imageIds={imageIds} toolGroupId={TOOL_GROUP_ID} />
       </div>
     </div>
   );
