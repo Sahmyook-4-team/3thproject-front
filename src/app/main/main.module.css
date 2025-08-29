@@ -120,7 +120,9 @@
   color: white;
   padding: 0.5rem 0.8rem;
   border-radius: 4px;
-  width: 100%;
+  /* width: 100%; 대신 아래 속성으로 변경 */
+  flex: 1; /* [핵심 수정] flex 컨테이너 안에서 남은 공간을 차지하도록 설정 */
+  min-width: 0; /* flex 아이템이 과도하게 커지는 것을 방지 */
 }
 
 .inputGroup {

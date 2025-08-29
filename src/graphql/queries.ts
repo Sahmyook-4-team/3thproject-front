@@ -8,12 +8,13 @@ export const SEARCH_PATIENTS = gql`
     $pname: String
     $studyDateStart: String
     $studyDateEnd: String
+    $modality: String
   ) {
     searchPatients(pid: $pid, pname: $pname) {
       pid
       pname
       # studies 필드를 조회할 때 날짜 범위 인자를 함께 전달합니다.
-      studies(studyDateStart: $studyDateStart, studyDateEnd: $studyDateEnd) {
+      studies(studyDateStart: $studyDateStart, studyDateEnd: $studyDateEnd,modality: $modality) {
         studyKey
         studydesc
         studydate

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react'; // [추가] useRef를 import 합니다.
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLazyQuery, useMutation } from '@apollo/client';
@@ -39,13 +39,15 @@ export default function MainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
-  // --- 상태 관리, Hooks 등 로직 부분 ---
   const [searchInput, setSearchInput] = useState({ patientId: '', patientName: '' });
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
   const [searchResults, setSearchResults] = useState<Patient[]>([]);
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
   const [reportContentInput, setReportContentInput] = useState('');
+  
+  // [1. 상태 추가] 검사장비 선택 값을 저장하는 상태 (이미 추가하셨습니다)
+  const [selectedModality, setSelectedModality] = useState('ALL');
 
   const [search, { loading, error, data }] = useLazyQuery(SEARCH_PATIENTS);
 
@@ -90,6 +92,21 @@ export default function MainPage() {
     }
   }, [selectedStudy]);
 
+  // [2. 자동 재검색 로직 추가] 날짜나 장비 필터 변경 시 자동으로 재검색
+  const isInitialMount = useRef(true); // 첫 렌더링 시 자동 검색 방지용
+
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false; // 첫 렌더링 후에는 false로 변경
+      return;
+    }
+    // 검색 결과가 있을 때만 필터 변경 시 자동 재검색 실행
+    if (searchResults.length > 0 || (searchInput.patientId || searchInput.patientName)) {
+      handleSearch(true); // isRefetch=true로 설정하여 알림창 없이 검색
+    }
+  }, [dateRange, selectedModality]); // 날짜 또는 장비가 변경될 때마다 이 효과 실행
+
+
   // --- 이벤트 핸들러 ---
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -101,6 +118,12 @@ export default function MainPage() {
     setDateRange(prev => ({ ...prev, [name]: value }));
   };
   
+  // [3. 핸들러 추가] 검사장비 선택 시 상태를 업데이트하는 핸들러
+  const handleModalityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    setSelectedModality(e.target.value);
+  };
+  
+  // [4. 검색 로직 수정] 검색 시 modality 값을 함께 보내도록 수정
   const handleSearch = (isRefetch = false) => {
     if (!isRefetch && !searchInput.patientId && !searchInput.patientName) {
       alert('환자 아이디 또는 이름을 입력해주세요.');
@@ -112,6 +135,7 @@ export default function MainPage() {
         pname: searchInput.patientName,
         studyDateStart: dateRange.start || null,
         studyDateEnd: dateRange.end || null,
+        modality: selectedModality, // [핵심] modality 값을 변수에 추가
       },
     });
   };
@@ -125,9 +149,8 @@ export default function MainPage() {
     setSelectedStudy(study);
   };
   
-  // [수정] 더블클릭 핸들러를 새로운 방식에 맞게 변경
   const handleStudyRowDoubleClick = (study: Study) => {
-    if (!selectedPatient) return; // 선택된 환자가 없으면 아무것도 안 함
+    if (!selectedPatient) return;
     router.push(`/viewer/${selectedPatient.pid}?studyId=${study.studyKey}`);
   };
 
@@ -165,7 +188,7 @@ export default function MainPage() {
 
   return (
     <div className={styles.container}>
-      {/* 왼쪽 사이드바 (변경 없음) */}
+      {/* 왼쪽 사이드바 */}
       <aside className={styles.sidebar}>
         <div className={styles.logo}>PACS<span>PLUS</span></div>
         <div className={styles.filterSection}>
@@ -179,8 +202,17 @@ export default function MainPage() {
           </div>
           <div className={styles.filterGroup}>
             <label>검사장비</label>
-            <select className={styles.select}>
-              <option>ALL</option>
+            {/* [5. UI 연결] select 태그에 value와 onChange를 연결합니다. */}
+            <select 
+              className={styles.select}
+              value={selectedModality}
+              onChange={handleModalityChange}
+            >
+              <option value="ALL">ALL</option>
+              <option value="CT">CT</option>
+              <option value="MR">MR</option>
+              <option value="CR">CR</option>
+              <option value="XA">XA</option>
             </select>
           </div>
         </div>
@@ -209,14 +241,8 @@ export default function MainPage() {
             </div>
           </section>
 
-          {/* [핵심 수정] 중간에 있던 불필요한 검사 결과 패널을 완전히 삭제했습니다. */}
-
-          {/* 하단 상세 정보 패널 (새로운 방식으로 통일) */}
           <div className={styles.bottomSection}>
-            
-            {/* 왼쪽 컬럼: 환자 목록 + 검사 목록 */}
             <div className={styles.leftColumn}>
-              
               <section className={`${styles.panel} ${styles.resultsPanel} ${styles.patientListPanel}`}>
                 <h2 className={styles.panelTitle}>환자 검색 결과 : {searchResults.length} 명</h2>
                 <div className={styles.tableContainer}>
@@ -245,7 +271,7 @@ export default function MainPage() {
                       {selectedPatient?.studies.map((study) => (
                         <tr key={study.studyKey} 
                             onClick={() => handleStudyRowClick(study)}
-                            onDoubleClick={() => handleStudyRowDoubleClick(study)} // [수정] 더블클릭 이벤트 추가
+                            onDoubleClick={() => handleStudyRowDoubleClick(study)}
                             className={selectedStudy?.studyKey === study.studyKey ? styles.selectedRow : ''}>
                           <td>{study.modality}</td>
                           <td>{study.studydesc}</td>
@@ -259,7 +285,6 @@ export default function MainPage() {
               </section>
             </div>
             
-            {/* 오른쪽 컬럼: 상세 정보 + 리포트 */}
             <div className={styles.rightColumn}>
                 <section className={styles.panel}>
                   <h2 className={styles.panelTitle}>상세 정보</h2>
@@ -318,5 +343,5 @@ export default function MainPage() {
         </main>
       </div>
     </div>
-  );
+  ); 
 }
