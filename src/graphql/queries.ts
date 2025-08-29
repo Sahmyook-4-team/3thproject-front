@@ -65,3 +65,25 @@ export const GET_PATIENT_WITH_STUDIES = gql`
     }
   }
 `;
+
+
+
+
+
+// studyKey로 단일 Study와 그 하위 Series 목록을 가져오는 쿼리
+export const GET_STUDY_DETAILS = gql`
+  query GetStudyDetails($studyKey: ID!) {
+    study(studyKey: $studyKey) {
+      studyKey
+      studydesc
+      # 이 Study에 속한 모든 Series의 정보를 가져옵니다.
+      series {
+        seriesKey
+        seriesdesc
+        modality
+        imagecnt
+        seriesnum
+      }
+    }
+  }
+`;

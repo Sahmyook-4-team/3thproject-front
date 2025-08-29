@@ -103,8 +103,7 @@ export default function ViewerPage({ params, searchParams }: PageProps) {
         <div className={styles.viewerContainer}>
           {/* Dynamic으로 불러온 뷰어 컴포넌트를 사용하고 patientId를 props로 전달합니다. */}
           <DicomViewer 
-            patientId={params.patientid} 
-            studyId={studyId || (patient.studies[0]?.studyKey)} 
+            studyKey={studyId || (patient.studies[0]?.studyKey)} 
           />
         </div>
       </main>

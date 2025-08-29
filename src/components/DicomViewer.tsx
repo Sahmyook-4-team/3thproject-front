@@ -1,169 +1,159 @@
-'use client';
+// @ts-nocheck
+// 파일 경로: src/components/DicomViewer.tsx
 
-import React, { useEffect, useRef } from 'react';
-import {
-  Enums,
-  init as coreInit,
-  RenderingEngine,
-  StackViewport,
-  getRenderingEngine,
-  eventTarget, // 이벤트 타겟 추가
-} from '@cornerstonejs/core';
-import {
-  init as dicomImageLoaderInit
-} from '@cornerstonejs/dicom-image-loader';
+import React, { useState, useEffect, useRef } from 'react';
+import { useQuery } from '@apollo/client';
+import { GET_STUDY_DETAILS } from '../graphql/queries'; // 사용자의 GraphQL 쿼리 파일 경로
+import CornerstoneViewer from './CornerstoneViewer';
+import styles from './DicomViewer.module.css'; // 아래에 제공될 CSS 파일 경로
 
-import dicomParser from 'dicom-parser';
-import { init as csToolsInit } from '@cornerstonejs/tools';
-import styles from './DicomViewer.module.css';
+// Cornerstone Tools에서 필요한 기능들을 가져옵니다.
+import * as csTools3d from '@cornerstonejs/tools';
+const { PanTool, ZoomTool, WindowLevelTool } = csTools3d;
 
 const API_BASE_URL = 'http://localhost:8080/api';
-const ENCODED_PATH_EXAMPLE = 'MjAyNTA4XDEyXE1TMDAwM1xDUlwxXC9DUi4xLjIuMzkyLjIwMDAzNi45MTA3LjUwMC4zMDQuODE3LjIwMjAwMzMwLjk1ODM1LjEwODE3LmRjbQ%3D%3D';
+// 자식과 공유할 툴 그룹 ID를 상수로 정의합니다.
+const TOOL_GROUP_ID = 'CT_TOOLGROUP';
 
-interface DicomViewerProps {
-  patientId: string;
-  studyId?: string;
-}
+export default function DicomViewer({ studyKey }) {
+  // --- 상태 관리 ---
+  const [seriesList, setSeriesList] = useState([]);
+  const [selectedSeriesKey, setSelectedSeriesKey] = useState(null);
+  const [imageIds, setImageIds] = useState([]); // 최종적으로 Cornerstone에 전달될 이미지 주소 배열
+  const [isLoading, setIsLoading] = useState(false);
+  const [activeTool, setActiveTool] = useState(WindowLevelTool.toolName); // 툴바에서 선택된 도구
+  const [startImageIndex, setStartImageIndex] = useState(0); // 이미지 인덱스
+  // 자식 컴포넌트(CornerstoneViewer)의 함수를 호출하기 위한 "리모컨" 역할을 하는 ref
+  const cornerstoneViewerRef = useRef(null);
 
-export default function DicomViewer({ patientId, studyId }: DicomViewerProps) {
-  const viewerRef = useRef<HTMLDivElement>(null);
+  // --- 데이터 로딩 ---
+  // GraphQL로 스터디의 시리즈 정보 가져오기
+  const { loading: gqlLoading, error: gqlError, data } = useQuery(GET_STUDY_DETAILS, {
+    variables: { studyKey },
+    skip: !studyKey,
+  });
 
+  // GraphQL 데이터가 오면 시리즈 목록 상태 업데이트
   useEffect(() => {
-    const renderingEngineId = 'dicom-viewer-engine-' + patientId;
-    const viewportId = 'CT_AXIAL_VIEWPORT-' + patientId;
-    let renderingEngine: RenderingEngine | undefined;
-
-    // --- [디버깅 추가] 이미지 로드 이벤트 리스너 ---
-    const handleImageLoaded = (e: any) => {
-      console.log('Cornerstone Image Loaded:', e.detail);
-    };
-    const handleImageLoadFailed = (e: any) => {
-      console.error('Cornerstone Image Load Failed:', e.detail);
-    };
-
-    const initViewer = async () => {
-      if (!viewerRef.current) return;
-      if (!viewerRef.current.clientWidth || !viewerRef.current.clientHeight) {
-        console.warn('뷰어 div의 크기가 0입니다. CSS에서 width와 height를 설정했는지 확인하세요.');
-        return;
+    if (data?.study?.series) {
+      setSeriesList(data.study.series);
+      // 첫 번째 시리즈를 자동으로 선택
+      if (data.study.series.length > 0) {
+        setSelectedSeriesKey(data.study.series[0].seriesKey);
       }
+    }
+  }, [data]);
+
+  // 사용자가 시리즈를 선택하면 해당 시리즈의 모든 이미지 파일을 다운로드
+  useEffect(() => {
+    if (!selectedSeriesKey) return;
+
+    const fetchAndLoadImages = async () => {
+      setIsLoading(true);
+      // 기존에 생성된 URL 객체들을 메모리에서 해제하여 메모리 누수를 방지합니다.
+      imageIds.forEach(id => {
+        const url = id.split(':')[1]; // 'dicomweb:' 다음의 blob URL 추출
+        if (url) URL.revokeObjectURL(url);
+      });
+      setImageIds([]);
 
       try {
-        // DICOM 파일 검증
-        try {
-          // TODO: Replace with actual API call using patientId and studyId
-          const imagePath = ENCODED_PATH_EXAMPLE;
-          const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${imagePath}`;
-          const response = await fetch(imageUrl, {
-            headers: {
-              'Authorization': `Bearer ${localStorage.getItem('accessToken')}`
-            }
-          });
-
-          if (!response.ok) {
-            // 서버가 4xx, 5xx 에러를 보낸 경우
-            const errorBody = await response.text(); // 에러 메시지를 확인하기 위해 text로 읽음
-            throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
-          }
-
-          // --- [수정 제안] Content-Type 헤더 확인 ---
-          const contentType = response.headers.get('content-type');
-          if (!contentType || !contentType.includes('application/dicom')) {
-            console.warn('응답이 DICOM 파일이 아닐 수 있습니다. Content-Type:', contentType);
-            // 만약 JSON 에러가 오는 경우를 대비해 추가적인 분기 처리를 할 수 있습니다.
-          }
-
-          const arrayBuffer = await response.arrayBuffer();
-          // --- [수정 제안] Array Buffer 확인 ---
-          if (!arrayBuffer || arrayBuffer.byteLength === 0) {
-            throw new Error('ArrayBuffer가 비어있거나 null입니다.');
-          }
-
-          const byteArray = new Uint8Array(arrayBuffer);
-          const dataSet = dicomParser.parseDicom(byteArray);
-
-          console.log('DICOM 파일 검증 성공:', {
-            sopClassUid: dataSet.string('x00080016'),
-            modality: dataSet.string('x00080060'),
-            rows: dataSet.uint16('x00280010'),
-            columns: dataSet.uint16('x00280011')
-          });
-        } catch (parseError) {
-          console.error('DICOM 파일 검증 실패:', parseError);
-          return; // 검증 실패 시 뷰어 초기화 중단
-        }
-
-        await coreInit();
-        await csToolsInit();
-
-        await dicomImageLoaderInit({
-          beforeSend: (xhr: XMLHttpRequest, imageId: string) => {
-            console.log('Intercepting request for imageId:', imageId);
-            const token = localStorage.getItem('accessToken');
-            if (token) {
-              xhr.setRequestHeader('Authorization', `Bearer ${token}`);
-            }
-          }
+        // 1. 백엔드에서 이미지 경로 목록을 가져옵니다.
+        const listUrl = `${API_BASE_URL}/v1/studies/keys/${studyKey}/${selectedSeriesKey}`;
+        const listResponse = await fetch(listUrl, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } });
+        if (!listResponse.ok) throw new Error('이미지 목록 fetch 실패');
+        const result = await listResponse.json();
+        if (!result.data || result.data.length === 0) return;
+        
+        // 2. 각 경로에 대해 실제 이미지 파일(ArrayBuffer)을 병렬로 다운로드합니다.
+        const imagePromises = result.data.map(encodedPath => {
+          const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${encodedPath}`;
+          return fetch(imageUrl, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } })
+            .then(res => {
+              if (!res.ok) throw new Error(`이미지 파일 fetch 실패: ${encodedPath}`);
+              return res.arrayBuffer();
+            });
         });
-
-
-        renderingEngine = getRenderingEngine(renderingEngineId);
-        if (!renderingEngine) {
-          renderingEngine = new RenderingEngine(renderingEngineId);
-        }
-
-        const viewportInput = {
-          viewportId: viewportId,
-          element: viewerRef.current,
-          type: Enums.ViewportType.STACK,
-        };
-        renderingEngine.enableElement(viewportInput);
-
-        // --- [수정 제안 1] 뷰포트 리사이즈 호출 ---
-        renderingEngine.resize(true, true);
-
-        const viewport = renderingEngine.getViewport(viewportId) as StackViewport;
-
-        const imageId = `wadors:${API_BASE_URL}/images/encoded-view?encodedPath=${ENCODED_PATH_EXAMPLE}`;
-
-        await viewport.setStack([imageId]);
-
-        // --- [수정 제안 2] 수동으로 VOI 설정 ---
-        // 이 값은 실제 DICOM 이미지에 맞게 조절해야 합니다.
-        // 예를 들어, CT 이미지의 뼈를 보려면 { lower: 200, upper: 1000 } 등으로 설정합니다.
-        const voi = { windowWidth: 400, windowCenter: 40 }; // 복부 CT의 일반적인 값
-        const voiRange = { lower: voi.windowCenter - voi.windowWidth / 2, upper: voi.windowCenter + voi.windowWidth / 2 };
-        viewport.setProperties({ voiRange });
-
-        renderingEngine.render();
-        console.log("API를 통해 DICOM 파일 렌더링 성공!");
-
-      } catch (error) {
-        console.error('DICOM 뷰어 초기화 또는 파일 로딩 중 오류 발생:', error);
-      }
-    };
-
-    // 이벤트 리스너 등록
-    eventTarget.addEventListener(Enums.Events.IMAGE_LOADED, handleImageLoaded);
-    eventTarget.addEventListener(Enums.Events.IMAGE_LOAD_FAILED, handleImageLoadFailed);
-
-    initViewer();
-
-    return () => {
-      // 이벤트 리스너 정리
-      eventTarget.removeEventListener(Enums.Events.IMAGE_LOADED, handleImageLoaded);
-      eventTarget.removeEventListener(Enums.Events.IMAGE_LOAD_FAILED, handleImageLoadFailed);
-
-      try {
-        if (renderingEngine) {
-          renderingEngine.destroy();
-        }
+        
+        const arrayBuffers = await Promise.all(imagePromises);
+        
+        // 3. 다운로드된 바이너리 데이터로 Cornerstone이 이해할 수 있는 'blob' URL을 생성합니다.
+        const newImageIds = arrayBuffers.map(buffer => {
+          const blob = new Blob([buffer], { type: 'application/dicom' });
+          const url = URL.createObjectURL(blob);
+          // 'dicomweb:' 접두사는 이미지가 보였던, 안정적인 방식입니다.
+          return `wadouri:${url}`;
+        });
+        setImageIds(newImageIds);
       } catch (e) {
-        console.warn("렌더링 엔진 정리 중 오류:", e);
+        console.error("이미지 로딩 중 오류 발생:", e);
+      } finally {
+        setIsLoading(false);
       }
     };
 
-  }, [patientId]);
+    fetchAndLoadImages();
+  }, [selectedSeriesKey, studyKey]);
 
-  return <div ref={viewerRef} className={styles.viewer} />;
+
+  const handleNextImage = () => {
+    if (imageIds.length > 0) {
+      setStartImageIndex((prevIndex) => (prevIndex + 1) % imageIds.length);
+    }
+  };
+  const handlePreviousImage = () => {
+    if (imageIds.length > 0) {
+      setStartImageIndex((prevIndex) => (prevIndex - 1 + imageIds.length) % imageIds.length);
+    }
+  };
+
+
+  // --- UI 렌더링 ---
+  return (
+    <div className={styles.studyContainer}>
+      <div className={styles.seriesSidebar}>
+        <h3>시리즈 목록</h3>
+        <ul>
+          {seriesList.map((series) => (
+            <li key={series.seriesKey}>
+              <button
+                className={selectedSeriesKey === series.seriesKey ? styles.active : ''}
+                onClick={() => setSelectedSeriesKey(series.seriesKey)}
+              >
+                ({series.modality}) {series.seriesnum}. {series.seriesdesc} ({series.imagecnt}장)
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <div className={styles.toolbar}>
+          <h3>도구</h3>
+          <button className={activeTool === WindowLevelTool.toolName ? styles.activeTool : ''} onClick={() => setActiveTool(WindowLevelTool.toolName)}>밝기/대조</button>
+          <button className={activeTool === PanTool.toolName ? styles.activeTool : ''} onClick={() => setActiveTool(PanTool.toolName)}>이동</button>
+          <button className={activeTool === ZoomTool.toolName ? styles.activeTool : ''} onClick={() => setActiveTool(ZoomTool.toolName)}>확대/축소</button>
+        </div>
+
+        {/* 새로 추가된 이미지 탐색 툴바 */}
+        <div className={styles.toolbar}>
+          <h3>탐색</h3>
+          <button onClick={handlePreviousImage}>이전 이미지</button>
+          <button onClick={handleNextImage}>다음 이미지</button>
+        </div>
+      </div>
+
+      <div className={styles.viewerContainer}>
+        {isLoading && <div className={styles.loadingOverlay}>이미지 로딩 중...</div>}
+        {/* 자식 컴포넌트에 ref와 필요한 props들을 전달합니다. */}
+        <CornerstoneViewer
+          ref={cornerstoneViewerRef}
+          imageIds={imageIds}
+          toolGroupId={TOOL_GROUP_ID}
+          activeTool={activeTool}
+          startImageIndex={startImageIndex}
+          onNextImage={handleNextImage}
+          onPreviousImage={handlePreviousImage}
+        />
+      </div>
+    </div>
+  );
 }
