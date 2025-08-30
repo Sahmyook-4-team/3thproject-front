@@ -11,7 +11,7 @@ import styles from './DicomViewer.module.css'; // 아래에 제공될 CSS 파일
 import * as csTools3d from '@cornerstonejs/tools';
 const { PanTool, ZoomTool, WindowLevelTool } = csTools3d;
 
-const API_BASE_URL = 'http://localhost:8080/api';
+const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080') + '/api';
 // 자식과 공유할 툴 그룹 ID를 상수로 정의합니다.
 const TOOL_GROUP_ID = 'CT_TOOLGROUP';
 
