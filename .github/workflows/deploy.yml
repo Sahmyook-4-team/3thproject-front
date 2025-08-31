@@ -7,9 +7,9 @@ name: Frontend CI/CD Pipeline
 # ★★★★★ 본인의 프론트엔드 기본 브랜치 이름이 'main'이라면 아래 'master'를 모두 'main'으로 수정하세요! ★★★★★
 on:
   push:
-    branches: [ "master" ]
+    branches: [ "main" ]
   pull_request:
-    branches: [ "master" ]
+    branches: [ "main" ]
     types: [ closed ]
 
 # ===================================================================
