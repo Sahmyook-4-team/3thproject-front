@@ -6,11 +6,20 @@ name: Frontend CI/CD Pipeline
 # ===================================================================
 # ★★★★★ 본인의 프론트엔드 기본 브랜치 이름이 'main'이라면 아래 'master'를 모두 'main'으로 수정하세요! ★★★★★
 on:
+  # 1. main 브랜치에 직접 push 할 때
   push:
-    branches: [ "main" ]
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'  # 모든 마크다운 파일 무시
+      - 'docs/**'  # docs 폴더 아래의 모든 변경 무시
+
+  # 2. main 브랜치로 Pull Request가 merge 될 때
   pull_request:
-    branches: [ "main" ]
-    types: [ closed ]
+    types: [ closed ] # PR이 닫혔을 때 (merged 또는 unmerged)
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
 
 # ===================================================================
 #  2. 실행될 작업 (Jobs)
