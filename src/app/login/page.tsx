@@ -41,7 +41,7 @@ export default function LoginPage() {
   return (
     <main className={styles.container}>
       <div className={styles.loginWrapper}>
-        <h1 className={styles.logo}>PACS<span>PLUS</span></h1>
+        <h1 className={styles.logo}><span>VisiDoc</span></h1>
         <form onSubmit={handleSubmit} className={styles.form}>
           {/* ▼▼▼ 이 input 필드들이 실제 UI에 필요합니다 ▼▼▼ */}
           <input

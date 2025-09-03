@@ -190,7 +190,7 @@ export default function MainPage() {
     <div className={styles.container}>
       {/* 왼쪽 사이드바 */}
       <aside className={styles.sidebar}>
-        <div className={styles.logo}>PACS<span>PLUS</span></div>
+        <div className={styles.logo}><span>VisiDoc</span></div>
         <div className={styles.filterSection}>
           <div className={styles.filterGroup}>
             <label>검사일자</label>

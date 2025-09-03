@@ -66,7 +66,7 @@ export default function ViewerPage({ params, searchParams }: PageProps) {
   return (
     <div className={styles.container}>
       <header className={styles.header}>
-        <div className={styles.logo}>PACS<span>PLUS</span></div>
+        <div className={styles.logo}><span>VisiDoc</span></div>
         <div className={styles.actions}>(아이콘 툴바 영역)</div>
       </header>
       <main className={styles.mainContent}>
