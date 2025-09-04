@@ -59,40 +59,52 @@ jobs:
 
       # Dockerfile을 사용하여 이미지를 빌드하고, Docker Hub에 푸시(업로드)합니다.
       # 이 과정 안에서 Dockerfile의 지시에 따라 자동으로 npm install 및 npm run build가 일어납니다.
-      - name: Build and Push Docker Image
-        uses: docker/build-push-action@v4
-        with:
-          context: .
-          push: true
-          # ★★★★★ 'my-app-frontend'를 본인이 만든 Docker Hub 레포지토리 이름으로 수정하세요! ★★★★★
-          tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
-          no-cache: true
-          
+      - name: Build Docker Image with Basic Commands
+        id: build-image # 이 단계에 ID를 부여합니다.
+        run: |
+          docker build \
+            --build-arg NEXT_PUBLIC_API_BASE_URL="" \
+            --no-cache \
+            -t ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest \
+            .
+          # 빌드된 이미지의 정확한 DIGEST를 출력하여 다음 단계에서 사용합니다.
+          echo "image_digest=$(docker inspect --format='{{index .RepoDigests 0}}' ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest)" >> $GITHUB_OUTPUT
 
-      # -------------------------------------------------------------------
-      #  단계 3: EC2 서버에 배포
-      # -------------------------------------------------------------------
-      # EC2 서버에 SSH로 원격 접속하여 배포 스크립트를 실행합니다.
+            - name: Push Docker Image and Verify Digest
+        run: |
+          echo "Pushing image to Docker Hub..."
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
+          echo "Pushed image digest is: ${{ steps.build-image.outputs.image_digest }}"
+          
+      # 배포 단계는 수정했던 "완전 초기화" 버전으로 유지합니다.
+      - name: Push Docker Image and Verify Digest
+        run: |
+          echo "Pushing image to Docker Hub..."
+          docker push ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
+          echo "Pushed image digest is: ${{ steps.build-image.outputs.image_digest }}"
+          
+      # 배포 단계는 수정했던 "완전 초기화" 버전으로 유지합니다.
       - name: Deploy to EC2 Instance
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.AWS_HOST_IP }}
-          username: ${{ secrets.AWS_HOST_USERNAME }}
-          key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
-          script: |
+        run: | # ssh-action 대신 직접 명령어를 실행하여 로그를 더 자세히 봅니다.
+          echo "${{ secrets.AWS_SSH_PRIVATE_KEY }}" > private_key.pem
+          chmod 600 private_key.pem
+          
+          ssh -o StrictHostKeyChecking=no -i private_key.pem ${{ secrets.AWS_HOST_USERNAME }}@${{ secrets.AWS_HOST_IP }} '
             cd ~/app
             
-            # .env 파일을 생성하여 모든 환경 변수를 안정적으로 관리합니다.
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
             echo "DB_USERNAME_PROD=${{ secrets.DB_USERNAME_PROD }}" >> .env
             echo "DB_PASSWORD_PROD=${{ secrets.DB_PASSWORD_PROD }}" >> .env
             
-            # docker-compose.yml에 정의된 모든 최신 이미지를 받아옵니다.
-            docker compose pull
+            docker compose down
+            docker rmi $(docker images -q ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front) || true
             
-            # 이제 더 이상 특정 서비스만 지정하지 않고, 전체 서비스를 대상으로 합니다.
-            # 이렇게 하면 Nginx나 다른 서비스에 문제가 생겨도 항상 함께 복구됩니다.
-            docker compose up -d --force-recreate
+            # 여기서 액션 로그에 찍힌 바로 그 DIGEST를 사용합니다.
+            echo "Pulling the exact image with digest: ${{ steps.build-image.outputs.image_digest }}"
+            docker pull ${{ steps.build-image.outputs.image_digest }}
             
-            # 불필요하게 남은 이전 버전의 이미지를 삭제하여 서버 용량을 확보합니다.
-            docker image prune -f
+            docker compose up -d
+            
+            echo "Final verification on EC2:"
+            docker images --digests | grep 3thproject-front
+          '
