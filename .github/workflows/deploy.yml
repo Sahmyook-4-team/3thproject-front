@@ -67,11 +67,7 @@ jobs:
           # ★★★★★ 'my-app-frontend'를 본인이 만든 Docker Hub 레포지토리 이름으로 수정하세요! ★★★★★
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
           no-cache: true
-
-          # 👇👇👇 이 부분을 추가하여 빌드 인자를 직접 주입합니다. 👇👇👇
-          # "NEXT_PUBLIC_API_BASE_URL 변수의 값은 빈 문자열("")이야!" 라고 강제합니다.
-          build-args: |
-            NEXT_PUBLIC_API_BASE_URL=""
+          
 
       # -------------------------------------------------------------------
       #  단계 3: EC2 서버에 배포

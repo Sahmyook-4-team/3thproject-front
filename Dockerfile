@@ -23,12 +23,6 @@ COPY package-lock.json ./
 # package.json에 명시된 모든 라이브러리(의존성)를 다운로드하고 설치합니다.
 RUN npm install
 
-# 1. 외부에서 NEXT_PUBLIC_API_BASE_URL 라는 이름의 빌드 인자를 받겠다고 선언합니다.
-ARG NEXT_PUBLIC_API_BASE_URL
-# 2. 받은 빌드 인자를 다음 RUN 명령어에서 사용할 수 있는 환경 변수로 설정합니다.
-ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
-
-
 # 현재 로컬 폴더의 모든 파일(소스 코드 등)을 컨테이너의 /app 폴더로 복사합니다.
 COPY . .
 
