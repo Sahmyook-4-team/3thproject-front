@@ -60,6 +60,7 @@ jobs:
           push: true
           # ★★★★★ 'my-app-frontend'를 본인이 만든 Docker Hub 레포지토리 이름으로 수정하세요! ★★★★★
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
+          no-cache: true
 
       # -------------------------------------------------------------------
       #  단계 3: EC2 서버에 배포
