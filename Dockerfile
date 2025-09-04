@@ -20,6 +20,11 @@ WORKDIR /app
 COPY package.json ./
 COPY package-lock.json ./
 
+# 빌드 환경에 영향을 주는 모든 설정 파일을 먼저 복사합니다
+COPY tsconfig.json ./
+COPY .env.production ./
+COPY .env.development ./
+
 # package.json에 명시된 모든 라이브러리(의존성)를 다운로드하고 설치합니다.
 RUN npm install
 
@@ -28,7 +33,8 @@ COPY . .
 
 # 'npm run build' 스크립트를 실행하여 Next.js 애플리케이션을 프로덕션용으로 빌드합니다.
 # 이 과정이 끝나면 /app 폴더 안에 '.next' 라는 결과물 폴더가 생성됩니다.
-RUN npm run build
+# .next 폴더를 삭제하여 캐시를 초기화합니다.
+RUN rm -rf .next && npm run build
 
 # ====================================================================
 #  2단계: 실제 '실행'만을 위한 깨끗한 최종 환경 (Runner/Final Stage)
