@@ -16,12 +16,13 @@ const nextConfig = {
   // 예: reactStrictMode: true,
 
   async rewrites() {
+    // 이 설정은 개발 환경(npm run dev)과 배포 환경 모두에서 작동합니다.
     return [
-      // '/api' 나 '/graphql'로 오는 모든 요청을
-      // 비밀 주소('http://backend:8080')로 전달합니다.
       {
-        source: '/:path((?!_next).*)', // _next/static 같은 Next.js 내부 요청은 제외
-        destination: `${process.env.API_BASE_URL}/:path*`,
+        // 사용자가 '/api/...'로 요청을 보내면,
+        source: '/api/:path*',
+        // Next.js 서버가 대신 백엔드 서버로 요청을 전달해준다.
+        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/:path*`,
       },
     ];
   },
