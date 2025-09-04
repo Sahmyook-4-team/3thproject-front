@@ -23,7 +23,7 @@ COPY package-lock.json ./
 # 빌드 환경에 영향을 주는 모든 설정 파일을 먼저 복사합니다
 COPY tsconfig.json ./
 COPY .env.production ./
-COPY .env.development ./
+# COPY .env.development ./
 
 # package.json에 명시된 모든 라이브러리(의존성)를 다운로드하고 설치합니다.
 RUN npm install
