@@ -1,5 +1,12 @@
 /* src/app/main/main.module.css (최종 완성 버전) */
 
+/*내가 추가 */
+
+.main_resultsPanel__fDw4E .tableHeader {
+  color: #ffffff;
+}
+
+
 /* =================================================================== */
 /*  1. 기본 레이아웃 & 폰트
 /* =================================================================== */
@@ -8,8 +15,8 @@
   display: grid;
   grid-template-columns: 280px 1fr;
   height: 100vh;
-  background-color: #212121;
-  color: #e0e0e0;
+  background-color: #f7f7f7;
+  color: #000000;
   font-size: 14px;
 }
 
@@ -34,7 +41,7 @@
 
 .sidebar {
   padding: 1.5rem;
-  background-color: #333;
+  background-color: #f7f7f7;
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
@@ -50,7 +57,7 @@
 }
 
 .logo span {
-  color: #dc3545;
+  color: #6b9f73;
 }
 
 .filterSection, .filterGroup {
@@ -61,7 +68,7 @@
 
 .filterGroup label {
   font-weight: bold;
-  color: #ccc;
+  color: #777777;
 }
 
 .dateRange {
@@ -97,7 +104,7 @@
 /* =================================================================== */
 
 .panel {
-  background-color: #333;
+  background-color: #e0e0e0;
   border-radius: 8px;
   padding: 1.5rem;
   border: 1px solid #444;
@@ -109,14 +116,14 @@
   font-size: 1.2rem;
   font-weight: bold;
   margin-bottom: 1.5rem;
-  border-left: 3px solid #dc3545;
+  border-left: 3px solid #6b9f73;
   padding-left: 0.8rem;
   flex-shrink: 0;
 }
 
 .input, .select {
-  background-color: #424242;
-  border: 1px solid #555;
+  background-color: #6b9f73;
+  border: 1px solid #6b9f73;
   color: white;
   padding: 0.5rem 0.8rem;
   border-radius: 4px;
@@ -146,9 +153,9 @@
   background-color: #666;
 }
 
-.redButton { background-color: #dc3545; }
-.redButton:hover { background-color: #c82333; }
-.blueButton { background-color: #3182ce; }
+.redButton { background-color: #555555; }
+.redButton:hover { background-color: #6b9f73; }
+.blueButton { background-color: #4278aa; }
 .blueButton:hover { background-color: #2b6cb0; }
 
 
@@ -210,7 +217,7 @@
 }
 
 .resultsPanel th {
-  background-color: #2a2a2a;
+  background-color: #6b9f73;
   position: sticky; /* 스크롤 시 상단에 고정 */
   top: 0;
   z-index: 1;
@@ -306,7 +313,7 @@
   justify-content: space-between;
   align-items: center;
   padding: 0.8rem 1.5rem;
-  background-color: #333;
+  background-color: #f7f7f7;
   border-bottom: 1px solid #444;
   flex-shrink: 0;
 }
@@ -415,3 +422,4 @@
   font-weight: 500;
 
 }
+
