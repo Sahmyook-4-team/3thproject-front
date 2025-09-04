@@ -17,15 +17,11 @@ const nextConfig = {
 
   async rewrites() {
     return [
-      // 규칙 1: /api/ 로 시작하는 모든 REST API 요청을 위한 길
+      // '/api' 나 '/graphql'로 오는 모든 요청을
+      // 비밀 주소('http://backend:8080')로 전달합니다.
       {
-        source: '/api/:path*',
-        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/:path*`,
-      },
-      // 규칙 2: /graphql 로 들어오는 모든 GraphQL 요청을 위한 길
-      {
-        source: '/graphql',
-        destination: `${process.env.NEXT_PUBLIC_API_BASE_URL}/graphql`,
+        source: '/:path((?!_next).*)', // _next/static 같은 Next.js 내부 요청은 제외
+        destination: `${process.env.API_BASE_URL}/:path*`,
       },
     ];
   },
