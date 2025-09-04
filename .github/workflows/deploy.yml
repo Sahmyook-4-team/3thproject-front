@@ -52,21 +52,10 @@ jobs:
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       # 디버깅 할때, .env.development 파일을 제거하여 .env.production 파일을 사용하도록 합니다.
-      - name: FORENSICS - Analyze Build Environment
+      - name: Prepare for Production Build
         run: |
-          echo "### 1. Listing ALL files (including hidden) ###"
-          ls -al
-          
-          echo "\n### 2. Displaying ALL .env file contents ###"
-          echo "--- .env.production ---"
-          cat .env.production || echo ".env.production not found."
-          echo "\n--- .env.development ---"
-          cat .env.development || echo ".env.development not found."
-          echo "\n--- .env.local ---"
-          cat .env.local || echo ".env.local not found."
-          
-          echo "\n### 3. Displaying ALL Environment Variables available to the build ###"
-          env
+          echo "Removing .env.development to ensure production-only settings are used."
+          rm -f .env.development
 
       # Dockerfile을 사용하여 이미지를 빌드하고, Docker Hub에 푸시(업로드)합니다.
       # 이 과정 안에서 Dockerfile의 지시에 따라 자동으로 npm install 및 npm run build가 일어납니다.
