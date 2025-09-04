@@ -82,14 +82,17 @@ jobs:
           script: |
             cd ~/app
             
-            # EC2 서버의 docker-compose.yml이 사용할 수 있도록 환경변수를 export 합니다.
-            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            # .env 파일을 생성하여 모든 환경 변수를 안정적으로 관리합니다.
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            echo "DB_USERNAME_PROD=${{ secrets.DB_USERNAME_PROD }}" >> .env
+            echo "DB_PASSWORD_PROD=${{ secrets.DB_PASSWORD_PROD }}" >> .env
             
-            # Docker Hub에서 최신 버전의 프론트엔드 이미지를 다운로드(pull)합니다.
-            docker compose pull frontend
+            # docker-compose.yml에 정의된 모든 최신 이미지를 받아옵니다.
+            docker compose pull
             
-            # 최신 이미지를 사용하여 프론트엔드 컨테이너를 다시 시작합니다.
-            docker compose up -d frontend
+            # 이제 더 이상 특정 서비스만 지정하지 않고, 전체 서비스를 대상으로 합니다.
+            # 이렇게 하면 Nginx나 다른 서비스에 문제가 생겨도 항상 함께 복구됩니다.
+            docker compose up -d --force-recreate
             
             # 불필요하게 남은 이전 버전의 이미지를 삭제하여 서버 용량을 확보합니다.
             docker image prune -f
