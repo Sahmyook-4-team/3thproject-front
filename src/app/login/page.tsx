@@ -64,7 +64,7 @@ export default function LoginPage() {
           />
           {/* ▲▲▲ 여기까지 ▲▲▲ */}
           {error && <p style={{ color: 'red', textAlign: 'center' }}>{error}</p>}
-          <button type="submit" className={styles.loginButton}>로그인 테스트</button>
+          <button type="submit" className={styles.loginButton}>로그인</button>
         </form>
       </div>
     </main>
