@@ -4,10 +4,11 @@ import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
 import { setContext } from '@apollo/client/link/context';
 
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
+// const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080';
 
 const httpLink = createHttpLink({
-  uri: `${API_BASE_URL}/graphql`, 
+  uri: '/graphql',  // 상대 경로로 변경
+  credentials: 'same-origin', // 쿠키를 포함한 요청을 위해 추가
 });
 
 const authLink = setContext((_, { headers }) => {

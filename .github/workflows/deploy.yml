@@ -4,18 +4,17 @@ name: Frontend CI/CD Pipeline
 # ===================================================================
 #  1. 워크플로우 실행 조건 (Trigger)
 # ===================================================================
-# ★★★★★ 본인의 프론트엔드 기본 브랜치 이름이 'main'이라면 아래 'master'를 모두 'main'으로 수정하세요! ★★★★★
 on:
-  # 1. main 브랜치에 직접 push 할 때
+  # main 브랜치에 직접 push 할 때
   push:
     branches: [ main ]
     paths-ignore:
-      - '**.md'  # 모든 마크다운 파일 무시
-      - 'docs/**'  # docs 폴더 아래의 모든 변경 무시
+      - '**.md'
+      - 'docs/**'
 
-  # 2. main 브랜치로 Pull Request가 merge 될 때
+  # main 브랜치로 Pull Request가 merge 될 때
   pull_request:
-    types: [ closed ] # PR이 닫혔을 때 (merged 또는 unmerged)
+    types: [ closed ]
     branches: [ main ]
     paths-ignore:
       - '**.md'
@@ -26,45 +25,42 @@ on:
 # ===================================================================
 jobs:
   build-and-deploy:
-    # Pull Request가 'Merge' 되었을 때만 이 작업을 실행하도록 조건을 추가합니다.
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.merged == true)
-    
-    # 이 작업은 GitHub가 제공하는 최신 우분투 가상 서버에서 실행됩니다.
+    if: github.event_name == 'push' || (github.event.pull_request.merged == true)
     runs-on: ubuntu-latest
-
-    # 작업 안에서 순서대로 실행될 단계(Steps)들을 정의합니다.
     steps:
       # -------------------------------------------------------------------
       #  단계 1: 소스 코드 준비
       # -------------------------------------------------------------------
-      # GitHub 저장소의 소스 코드를 가상 서버 안으로 내려받습니다.
       - name: Checkout Source Code
         uses: actions/checkout@v3
       
       # -------------------------------------------------------------------
-      #  단계 2: Docker 이미지 빌드 및 Docker Hub에 업로드
+      #  단계 2: Docker Hub 로그인
       # -------------------------------------------------------------------
-      # GitHub Secrets를 사용하여 Docker Hub에 로그인합니다.
       - name: Login to Docker Hub
         uses: docker/login-action@v2
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      # Dockerfile을 사용하여 이미지를 빌드하고, Docker Hub에 푸시(업로드)합니다.
-      # 이 과정 안에서 Dockerfile의 지시에 따라 자동으로 npm install 및 npm run build가 일어납니다.
+      # -------------------------------------------------------------------
+      #  단계 3: 이미지 빌드 및 푸시, 그리고 DIGEST 캡처
+      # -------------------------------------------------------------------
       - name: Build and Push Docker Image
+        id: build-and-push # 이 단계에 ID를 부여합니다.
         uses: docker/build-push-action@v4
         with:
           context: .
           push: true
-          # ★★★★★ 'my-app-frontend'를 본인이 만든 Docker Hub 레포지토리 이름으로 수정하세요! ★★★★★
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
+          no-cache: true
+          # Dockerfile에 ARG/ENV를 추가하여 빌드 인자를 전달하는 것이 가장 확실합니다.
+          build-args: |
+            NEXT_PUBLIC_API_BASE_URL=""
 
       # -------------------------------------------------------------------
-      #  단계 3: EC2 서버에 배포
+      #  단계 4: EC2 서버에 배포 (DIGEST 지정 방식)
       # -------------------------------------------------------------------
-      # EC2 서버에 SSH로 원격 접속하여 배포 스크립트를 실행합니다.
       - name: Deploy to EC2 Instance
         uses: appleboy/ssh-action@v0.1.7
         with:
@@ -74,14 +70,24 @@ jobs:
           script: |
             cd ~/app
             
-            # EC2 서버의 docker-compose.yml이 사용할 수 있도록 환경변수를 export 합니다.
-            export DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" > .env
+            echo "DB_USERNAME_PROD=${{ secrets.DB_USERNAME_PROD }}" >> .env
+            echo "DB_PASSWORD_PROD=${{ secrets.DB_PASSWORD_PROD }}" >> .env
             
-            # Docker Hub에서 최신 버전의 프론트엔드 이미지를 다운로드(pull)합니다.
-            docker compose pull frontend
+            # 이전 단계에서 푸시된 이미지의 정확한 DIGEST를 가져옵니다.
+            IMAGE_DIGEST="${{ steps.build-and-push.outputs.digest }}"
+            echo "The exact image digest to be deployed is: ${IMAGE_DIGEST}"
             
-            # 최신 이미지를 사용하여 프론트엔드 컨테이너를 다시 시작합니다.
-            docker compose up -d frontend
+            docker compose down
             
-            # 불필요하게 남은 이전 버전의 이미지를 삭제하여 서버 용량을 확보합니다.
-            docker image prune -f
+            # 낡은 이미지를 강제로 삭제합니다.
+            docker rmi $(docker images -q ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front) || true
+            
+            # 'latest' 태그가 아닌, 방금 푸시된 이미지의 정확한 DIGEST를 사용하여 다운로드합니다.
+            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front@${IMAGE_DIGEST}
+            
+            # 모든 서비스를 새로 시작합니다.
+            docker compose up -d
+            
+            echo "Final verification on EC2:"
+            docker images --digests | grep 3thproject-front

@@ -176,20 +176,32 @@
 /* 툴바 스타일 */
 .toolbar {
   margin-top: 20px;
-  border-top: 1px solid #ccc;
-  padding-top: 10px;
+  /*border-top: 1px solid #ccc;
+  padding-top: 10px;*/
 }
 
 .toolbar button {
-  width: 100%;
-  padding: 8px;
-  margin-bottom: 4px;
-  background-color: #f0f0f0;
-  border: 1px solid #ddd;
-  border-radius: 4px;
+  background-color: #4f4f4f;
+  color: #e0e0e0;
+  border: 1px solid #555;
+  border-radius: 5px;
+  width: 40px; /* 버튼 너비 */
+  height: 40px; /* 버튼 높이 (정사각형) */
+  padding: 0; /* 내부 여백 제거 */
+  display: flex; /* 아이콘을 중앙에 놓기 위한 설정 1 */
+  justify-content: center; /* 아이콘을 중앙에 놓기 위한 설정 2 (좌우) */
+  align-items: center; /* 아이콘을 중앙에 놓기 위한 설정 3 (상하) */
   cursor: pointer;
+  font-size: 18px; /* 아이콘 크기 조절 */
+  transition: background-color 0.2s, color 0.2s;
 }
 
 .toolbar button:hover {
   background-color: #e0e0e0;
+}
+
+.toolIconsContainer {
+  display: flex;
+  flex-wrap: wrap; /* 공간 부족 시 다음 줄로 넘김 */
+  gap: 8px; /* 아이콘 사이의 간격 */
 }
