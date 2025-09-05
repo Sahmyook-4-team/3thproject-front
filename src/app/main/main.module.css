@@ -415,3 +415,16 @@
   font-weight: 500;
 
 }
+.chatLinkButton {
+  background-color: #28a745; /* 녹색 배경 */
+  color: white;
+  padding: 8px 16px;
+  border-radius: 5px;
+  text-decoration: none; /* 밑줄 제거 */
+  font-weight: bold;
+  transition: background-color 0.2s; /* 부드러운 색상 변경 효과 */
+}
+
+.chatLinkButton:hover {
+  background-color: #218838; /* 마우스를 올렸을 때 약간 어두운 녹색 */
+}

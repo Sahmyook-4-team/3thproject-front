@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react'; // [추가] useRef를 import 합니다.
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLazyQuery, useMutation } from '@apollo/client';
+import Link from 'next/link';
 
 import { SEARCH_PATIENTS } from '@/graphql/queries'; 
 import { CREATE_OR_UPDATE_REPORT } from '@/graphql/mutations';
@@ -35,6 +36,10 @@ interface Patient {
   studies: Study[];
 }
 
+interface SearchPatientsQueryData {
+  searchPatients: Patient[];
+}
+
 export default function MainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
@@ -45,18 +50,19 @@ export default function MainPage() {
   const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
   const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
   const [reportContentInput, setReportContentInput] = useState('');
-  
-  // [1. 상태 추가] 검사장비 선택 값을 저장하는 상태 (이미 추가하셨습니다)
   const [selectedModality, setSelectedModality] = useState('ALL');
 
-  const [search, { loading, error, data }] = useLazyQuery(SEARCH_PATIENTS);
+  const [search, { loading, error, data }] = useLazyQuery<SearchPatientsQueryData>(SEARCH_PATIENTS);
+
 
   const [saveReport, { loading: saving, error: saveError }] = useMutation(
     CREATE_OR_UPDATE_REPORT,
     {
       onCompleted: () => {
         alert('소견서가 저장되었습니다.');
-        handleSearch(true);
+        // [핵심 수정] 저장 후 최신 데이터를 다시 불러오기 위해 isRefetch를 true로 설정합니다.
+        // 이렇게 하면 화면이 깜빡이지 않고 소견서 상태('작성중') 등이 바로 업데이트됩니다.
+        handleSearch(true); 
       },
       onError: (err) => {
         console.error('소견서 저장 실패:', err);
@@ -75,39 +81,47 @@ export default function MainPage() {
     if (data && data.searchPatients) {
       const patients = data.searchPatients;
       setSearchResults(patients);
-      if (patients.length === 1) {
-        setSelectedPatient(patients[0]);
-      } else {
-        setSelectedPatient(null);
-        setSelectedStudy(null);
+
+      // [핵심 수정] 검색 결과가 변경될 때, 선택된 환자와 스터디 정보를 업데이트합니다.
+      // 이렇게 해야 소견서 저장 후에도 선택 상태가 유지됩니다.
+      if (selectedPatient) {
+        const updatedPatient = patients.find(p => p.pid === selectedPatient.pid);
+        setSelectedPatient(updatedPatient || null);
+        if (selectedStudy && updatedPatient) {
+          const updatedStudy = updatedPatient.studies.find(s => s.studyKey === selectedStudy.studyKey);
+          setSelectedStudy(updatedStudy || null);
+        }
       }
     }
   }, [data]);
 
+  // [핵심 수정] selectedStudy가 변경될 때마다 소견서 내용을 업데이트하는 useEffect
   useEffect(() => {
+    // 선택된 스터지가 있다면
     if (selectedStudy) {
+      // 해당 스터디에 'report' 객체가 존재하고, 그 안에 'reportContent'가 있다면 그 내용을 사용합니다.
+      // 없다면(??), 빈 문자열('')을 사용합니다. (새로 작성하는 경우)
       setReportContentInput(selectedStudy.report?.reportContent ?? '');
     } else {
+      // 선택된 스터디가 없다면 소견서 입력창을 비웁니다.
       setReportContentInput('');
     }
-  }, [selectedStudy]);
+  }, [selectedStudy]); // selectedStudy state가 바뀔 때마다 이 로직이 실행됩니다.
 
-  // [2. 자동 재검색 로직 추가] 날짜나 장비 필터 변경 시 자동으로 재검색
-  const isInitialMount = useRef(true); // 첫 렌더링 시 자동 검색 방지용
+  const isInitialMount = useRef(true); 
 
   useEffect(() => {
     if (isInitialMount.current) {
-      isInitialMount.current = false; // 첫 렌더링 후에는 false로 변경
+      isInitialMount.current = false; 
       return;
     }
-    // 검색 결과가 있을 때만 필터 변경 시 자동 재검색 실행
     if (searchResults.length > 0 || (searchInput.patientId || searchInput.patientName)) {
-      handleSearch(true); // isRefetch=true로 설정하여 알림창 없이 검색
+      handleSearch(true);
     }
-  }, [dateRange, selectedModality]); // 날짜 또는 장비가 변경될 때마다 이 효과 실행
+  }, [dateRange, selectedModality]); 
 
 
-  // --- 이벤트 핸들러 ---
+  // --- 이벤트 핸들러 (대부분 변경 없음) ---
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchInput(prev => ({ ...prev, [name]: value }));
@@ -118,12 +132,10 @@ export default function MainPage() {
     setDateRange(prev => ({ ...prev, [name]: value }));
   };
   
-  // [3. 핸들러 추가] 검사장비 선택 시 상태를 업데이트하는 핸들러
   const handleModalityChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     setSelectedModality(e.target.value);
   };
   
-  // [4. 검색 로직 수정] 검색 시 modality 값을 함께 보내도록 수정
   const handleSearch = (isRefetch = false) => {
     if (!isRefetch && !searchInput.patientId && !searchInput.patientName) {
       alert('환자 아이디 또는 이름을 입력해주세요.');
@@ -135,7 +147,7 @@ export default function MainPage() {
         pname: searchInput.patientName,
         studyDateStart: dateRange.start || null,
         studyDateEnd: dateRange.end || null,
-        modality: selectedModality, // [핵심] modality 값을 변수에 추가
+        modality: selectedModality,
       },
     });
   };
@@ -202,12 +214,7 @@ export default function MainPage() {
           </div>
           <div className={styles.filterGroup}>
             <label>검사장비</label>
-            {/* [5. UI 연결] select 태그에 value와 onChange를 연결합니다. */}
-            <select 
-              className={styles.select}
-              value={selectedModality}
-              onChange={handleModalityChange}
-            >
+            <select className={styles.select} value={selectedModality} onChange={handleModalityChange}>
               <option value="ALL">ALL</option>
               <option value="CT">CT</option>
               <option value="MR">MR</option>
@@ -220,7 +227,9 @@ export default function MainPage() {
       
       <div className={styles.rightContent}>
         <header className={styles.header}>
-            <div></div>
+            <div>
+              <Link href="/chat" className={styles.chatLinkButton}>채팅</Link>
+            </div>
             <div className={styles.userInfo}>
                 <span>{user?.username} 님 ({user?.role})</span>
                 <button onClick={logout} className={`${styles.button} ${styles.logoutButton}`}>
@@ -322,8 +331,15 @@ export default function MainPage() {
                       </div>
                       <div style={{ marginTop: '1rem' }}>
                           <label>판독의</label>
+                          {/* [핵심 수정] 판독의 필드를 동적으로 설정합니다. */}
                           <input type="text" className={styles.input}
-                              value={selectedStudy.report?.author?.username ?? user?.username ?? '미정'} readOnly />
+                              value={
+                                selectedStudy.report?.author?.username ?? // 1. 기존 리포트가 있으면, 작성자 이름을 표시
+                                user?.username ??                         // 2. 없다면, 현재 로그인한 사용자 이름을 표시
+                                '미정'                                     // 3. 둘 다 없으면 '미정'
+                              } 
+                              readOnly // 이 필드는 직접 수정하지 못하도록 읽기 전용으로 설정
+                          />
                       </div>
       
                       <div style={{ marginTop: '1rem', textAlign: 'right' }}>

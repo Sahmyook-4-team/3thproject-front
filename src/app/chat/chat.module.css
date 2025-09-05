@@ -1,0 +1,170 @@
+.chatLayout { 
+  display: flex; 
+  height: 100vh; 
+  font-family: sans-serif; 
+}
+
+/* --- ▼▼▼ 사이드바 영역 수정 ▼▼▼ --- */
+
+.userSidebar { 
+  width: 280px; 
+  display: flex; 
+  flex-direction: column; 
+  /* [수정] 어두운 배경색과 기본 글자색 지정 */
+  background-color: #2c3e50; 
+  color: #ecf0f1; 
+  border-right: 1px solid #34495e; 
+}
+
+.sidebarHeader { 
+  padding: 1.5rem; 
+  /* [수정] 어두운 테마에 맞는 하단 경계선 색상 */
+  border-bottom: 1px solid #34495e; 
+}
+
+.sidebarHeader h3 {
+  /* [추가] 헤더 제목이 더 잘 보이도록 */
+  color: #ffffff;
+}
+
+.userList { 
+  list-style: none; 
+  padding: 0; 
+  margin: 0; 
+  overflow-y: auto; 
+  flex-grow: 1; 
+}
+
+.userItem { 
+  display: flex; 
+  align-items: center; 
+  padding: 1rem 1.5rem; 
+  cursor: pointer; 
+  /* [수정] 어두운 테마에 맞는 하단 경계선 색상 */
+  border-bottom: 1px solid #34495e; 
+  transition: background-color 0.2s; /* [추가] 부드러운 효과 */
+}
+
+.userItem:hover { 
+  /* [수정] 마우스를 올렸을 때의 배경색 */
+  background-color: #34495e; 
+}
+
+.userItem.selected { 
+  /* [수정] 선택되었을 때의 배경색과 글자색 */
+  background-color: #4a6572; 
+  color: #ffffff; 
+  font-weight: bold;
+}
+
+.statusIndicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  margin-right: 12px;
+  flex-shrink: 0;
+}
+
+.statusIndicator.online { background-color: #2ecc71; /* [수정] 더 선명한 초록색 */ }
+.statusIndicator.offline { background-color: #e74c3c; /* [수정] 더 선명한 빨간색 */ }
+
+/* --- ▲▲▲ 사이드바 영역 수정 완료 ▲▲▲ --- */
+
+
+.chatWindow { 
+  flex-grow: 1; 
+  display: flex; 
+  flex-direction: column; 
+}
+
+/* --- ▼▼▼ 채팅창 헤더 영역 수정 ▼▼▼ --- */
+.chatHeader { 
+  padding: 1.5rem; 
+  /* [수정] 사이드바와 통일감 있는 어두운 테마 적용 */
+  background-color: #2c3e50;
+  color: #ecf0f1;
+  border-bottom: 1px solid #34495e; 
+}
+.chatHeader h2 {
+    /* [추가] 헤더 제목이 더 잘 보이도록 */
+    color: #ffffff;
+}
+/* --- ▲▲▲ 채팅창 헤더 영역 수정 완료 ▲▲▲ --- */
+
+
+.messageArea { 
+  flex-grow: 1; 
+  padding: 2rem; 
+  overflow-y: auto; 
+  display: flex; 
+  flex-direction: column; 
+  gap: 1rem;
+  /* [추가] 메시지 영역 배경색 (기존 흰색 유지) */
+  background-color: #f4f7f9;
+}
+
+.messageBubble { 
+  max-width: 60%; 
+  padding: 0.8rem 1.2rem; 
+  border-radius: 18px; 
+  position: relative; 
+}
+
+.messageBubble.sent { 
+  align-self: flex-end; 
+  background-color: #007bff; 
+  color: white; 
+  border-radius: 18px 18px 4px 18px; 
+}
+
+.messageBubble.received { 
+  align-self: flex-start; 
+  background-color: #ffffff; 
+  color: #333; 
+  border-radius: 18px 18px 18px 4px; 
+  border: 1px solid #e0e0e0;
+}
+
+.timestamp { 
+  font-size: 0.7rem; 
+  color: #999; 
+  margin-top: 5px; 
+  display: block; 
+  text-align: right; 
+}
+
+.messageBubble.sent .timestamp { 
+  color: #e0e0e0; 
+}
+
+.chatInputArea { 
+  padding: 1rem; 
+  border-top: 1px solid #e0e0e0; 
+  display: flex; 
+  gap: 1rem; 
+  background-color: #ffffff;
+}
+
+.chatInputArea input { 
+  flex-grow: 1; 
+  padding: 0.8rem; 
+  border: 1px solid #ccc; 
+  border-radius: 20px; 
+}
+
+.chatInputArea button { 
+  padding: 0.8rem 1.5rem; 
+  border: none; 
+  border-radius: 20px; 
+  background-color: #007bff; 
+  color: white; 
+  cursor: pointer; 
+}
+
+.placeholder { 
+  display: flex; 
+  justify-content: center; 
+  align-items: center; 
+  height: 100%; 
+  color: #888; 
+}

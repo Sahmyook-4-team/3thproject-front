@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import api from '../utils/api';
+import Link from 'next/link';
 // axios import는 이 파일에서 더 이상 필요 없습니다.
 
 // 백엔드에서 보내주는 에러 응답의 데이터 타입을 정의합니다.
@@ -80,6 +81,18 @@ export default function AdminPage() {
       </header>
 
       <main style={{ marginTop: '2rem' }}>
+          {/* ▼▼▼ 이 부분을 여기에 추가해 주세요 ▼▼▼ */}
+        <div style={{ marginBottom: '2rem', padding: '1rem', background: '#e0e8ff', borderRadius: '8px' }}>
+          <Link href="/chat" style={{ 
+              textDecoration: 'none', 
+              color: '#0056b3', 
+              fontWeight: 'bold', 
+              fontSize: '1.1rem' 
+          }}>
+            → 사용자 채팅 페이지로 이동하기
+          </Link>
+        </div>
+        {/* ▲▲▲ 여기까지 추가 ▲▲▲ */}
         <h2 style={{ borderBottom: '2px solid #333', paddingBottom: '0.5rem' }}>새로운 사용자 생성</h2>
         <form onSubmit={handleUserCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem', marginTop: '1rem', border: '1px solid #ddd', borderRadius: '8px', background: '#f9f9f9' }}>
           <input name="userid" value={newUser.userid} onChange={handleInputChange} placeholder="사용자 아이디 (e.g., doctor_kim)" required style={{ padding: '10px' }} />
