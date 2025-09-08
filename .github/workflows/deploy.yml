@@ -78,16 +78,20 @@ jobs:
             IMAGE_DIGEST="${{ steps.build-and-push.outputs.digest }}"
             echo "The exact image digest to be deployed is: ${IMAGE_DIGEST}"
             
+            # 1. 기존 서비스를 중단합니다.
             docker compose down
             
-            # 낡은 이미지를 강제로 삭제합니다.
-            docker rmi $(docker images -q ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front) || true
+            # 2. Docker Compose 파일에 정의된 이미지를 강제로 다시 Pull 합니다.
+            #    이 명령어는 docker-compose.yml 파일에 명시된 이미지 (예: :latest)를
+            #    Docker Hub에서 최신 버전으로 가져옵니다.
+            docker compose pull
             
-            # 'latest' 태그가 아닌, 방금 푸시된 이미지의 정확한 DIGEST를 사용하여 다운로드합니다.
-            docker pull ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front@${IMAGE_DIGEST}
-            
-            # 모든 서비스를 새로 시작합니다.
-            docker compose up -d
+            # 3. 새로운 컨테이너를 생성하고 시작합니다.
+            #    --force-recreate: 기존 컨테이너가 있더라도 강제로 재생성합니다.
+            #    --build: Dockerfile이 변경되었을 때 빌드를 다시 수행합니다. (여기서는 필요 없을 수 있습니다.)
+            docker compose up -d --force-recreate
             
             echo "Final verification on EC2:"
+            # 실행 중인 컨테이너와 사용 중인 이미지 확인 (수정된 서비스 이름 사용)
+            docker ps -a
             docker images --digests | grep 3thproject-front

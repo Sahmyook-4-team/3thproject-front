@@ -13,6 +13,9 @@ FROM node:18-alpine AS builder
 # 컨테이너 내부에 '/app'이라는 작업 폴더를 만들고, 앞으로의 모든 명령을 이 폴더 안에서 실행합니다.
 WORKDIR /app
 
+ARG NEXT_PUBLIC_API_BASE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
+
 # 'package.json'과 'package-lock.json' 파일을 먼저 복사합니다.
 # (이유: Docker는 레이어(layer) 기반 캐싱을 사용합니다. 소스 코드는 자주 바뀌지만,
 # 의존성(package.json)은 잘 바뀌지 않습니다. 이 파일들을 먼저 복사해서 `npm install`을 실행하면,
