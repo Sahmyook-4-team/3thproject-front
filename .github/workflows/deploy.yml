@@ -55,9 +55,6 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
           no-cache: true
-          # Dockerfile에 ARG/ENV를 추가하여 빌드 인자를 전달하는 것이 가장 확실합니다.
-          build-args: |
-            NEXT_PUBLIC_API_BASE_URL=http://my-app-backend:8080
 
 
       # -------------------------------------------------------------------
