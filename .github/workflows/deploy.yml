@@ -77,21 +77,14 @@ jobs:
 
             # 2. CI에서 빌드한 이미지의 정확한 다이제스트를 환경 변수로 지정
             #    docker-compose.yml이 이 변수를 사용하게 됩니다.
-            export IMAGE_TAG="@${{ steps.build-and-push.outputs.digest }}"
-            echo "Deploying with Image Digest: ${IMAGE_TAG}"
+            # export IMAGE_TAG="@${{ steps.build-and-push.outputs.digest }}"
+            # echo "Deploying with Image Digest: ${IMAGE_TAG}"
 
-            # 3. Docker Hub 로그인 (pull 권한 문제 방지)
-            docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-
-            # 4. 이전 컨테이너 중지 및 삭제
-            docker compose down
-
-            # 5. docker-compose.yml에 명시된 이미지(이제 다이제스트로 지정됨)를 강제로 pull
-            #    이제 :latest가 아닌 정확한 다이제스트로 이미지를 가져옵니다.
-            docker compose pull
-
-            # 6. 새로운 이미지로 컨테이너를 다시 생성하고 실행
-            docker compose up -d --force-recreate
+            IMAGE_TAG="@${{ steps.build-and-push.outputs.digest }}" \
+            docker compose pull frontend
+            
+            IMAGE_TAG="@${{ steps.build-and-push.outputs.digest }}" \
+            docker compose up -d --force-recreate 
 
             # 7. 사용하지 않는 구버전 이미지들 삭제 (디스크 용량 확보)
             docker image prune -af
