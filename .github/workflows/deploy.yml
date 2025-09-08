@@ -82,7 +82,7 @@ jobs:
             # [백엔드 워크플로우인 경우]
             # 3. [핵심] 배포할 이미지 정보를 .env 파일에 직접 추가합니다.
             # docker-compose.yml이 이 변수를 읽어 정확한 이미지를 사용하게 됩니다.
-            echo "IMAGE_TAG_FRONT=@${{ steps.build-and-push.outputs.digest }}" >> .env
+            echo "IMAGE_TAG_FRONT=${{ steps.build-and-push.outputs.digest }}" >> .env
             echo "Deploying Frontend with Image Digest from .env file..."
             
             # 4. Docker Hub 로그인
