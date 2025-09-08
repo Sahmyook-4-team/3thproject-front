@@ -39,8 +39,7 @@ RUN rm -rf .next
 
 # 'npm run build' 스크립트를 실행하여 Next.js 애플리케이션을 프로덕션용으로 빌드합니다.
 # 이 과정이 끝나면 /app 폴더 안에 '.next' 라는 결과물 폴더가 생성됩니다.
-# .next 폴더를 삭제하여 캐시를 초기화합니다.
-RUN rm -rf .next && npm run build
+RUN npm run build
 
 # ====================================================================
 #  2단계: 실제 '실행'만을 위한 깨끗한 최종 환경 (Runner/Final Stage)
