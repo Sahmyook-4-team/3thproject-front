@@ -33,17 +33,6 @@ jobs:
       # -------------------------------------------------------------------
       - name: Checkout Source Code
         uses: actions/checkout@v3
-
-              # ===================================================================
-      #  [핵심] 디버깅 단계: 현재 위치와 파일 구조 확인
-      # ===================================================================
-      - name: DEBUG - Check Current Path and Directory Structure
-        run: |
-          echo "--- Current working directory ---"
-          pwd
-          echo "--- List all files and directories recursively ---"
-          ls -R
-      # ===================================================================
       
       # -------------------------------------------------------------------
       #  단계 2: Docker Hub 로그인
@@ -62,6 +51,7 @@ jobs:
         uses: docker/build-push-action@v4
         with:
           context: .
+          file: ./Dockerfile
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
           no-cache: true
