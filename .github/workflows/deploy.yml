@@ -57,7 +57,7 @@ jobs:
           no-cache: true
           # Dockerfile에 ARG/ENV를 추가하여 빌드 인자를 전달하는 것이 가장 확실합니다.
           build-args: |
-            NEXT_PUBLIC_API_BASE_URL=""
+            NEXT_PUBLIC_API_BASE_URL=http://my-app-backend:8080
 
 
       # -------------------------------------------------------------------
@@ -95,7 +95,7 @@ jobs:
             echo "--- Final container status ---"
             docker ps
 
-    
+
       # -------------------------------------------------------------------
       # 단계 5: CloudFront 캐시 무효화
       # -------------------------------------------------------------------
