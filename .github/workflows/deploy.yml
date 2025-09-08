@@ -59,19 +59,6 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_BASE_URL=""
 
-      # -------------------------------------------------------------------
-      #  [★새로운 단계★] 방금 푸시한 이미지로 내부를 검사
-      # -------------------------------------------------------------------
-      - name: Verify content of the pushed image
-        run: |
-          echo "--- Verifying files inside the PUSHED image ---"
-          # Docker Hub에서 방금 푸시한 이미지를 다시 받아서 임시 컨테이너를 실행합니다.
-          docker pull ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
-          
-          echo "--- Listing files in /.next/static/chunks/app/main ---"
-          # [수정 필요] /app 경로는 Dockerfile의 WORKDIR에 맞춰야 합니다.
-          docker run --rm ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest ls -l /app/.next/static/chunks/app/main
-          
 
       # -------------------------------------------------------------------
       #  단계 4: EC2 서버에 배포 (DIGEST 지정 방식)
@@ -107,3 +94,17 @@ jobs:
 
             echo "--- Final container status ---"
             docker ps
+
+
+
+      # -------------------------------------------------------------------
+      # 단계 5: CloudFront 캐시 무효화
+      # -------------------------------------------------------------------
+      - name: Invalidate CloudFront Cache
+        uses: chetan/invalidate-cloudfront-action@v2
+        env:
+          DISTRIBUTION: ${{ secrets.AWS_CLOUDFRONT_DISTRIBUTION_ID }}
+          PATHS: "/*"
+          AWS_REGION: "ap-northeast-2" # AWS 리전 (서울은 ap-northeast-2)
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
