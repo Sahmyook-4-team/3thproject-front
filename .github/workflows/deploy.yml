@@ -69,44 +69,27 @@ jobs:
           username: ${{ secrets.AWS_HOST_USERNAME }}
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
-            # ===================================================================
-            # [최종 디버깅 스크립트]
-            # ===================================================================
-
-            # 1. 내가 지금 어디에 있는지 확인 (가장 기본)
-            echo "--- 1. Current directory ---"
-            pwd
             cd ~/app
-            echo "--- After cd ~/app ---"
-            pwd
-            echo "--- Files in current directory ---"
-            ls -la
-
-            # 2. .env 파일이 어떻게 만들어지는지 직접 확인
-            echo "--- 2. Creating .env file ---"
-            > .env
-            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
-            echo "DB_USERNAME_PROD=${{ secrets.DB_USERNAME_PROD }}" >> .env
-            echo "DB_PASSWORD_PROD=${{ secrets.DB_PASSWORD_PROD }}" >> .env
             
-            # [프론트엔드 워크플로우인 경우 아래 라인 사용]
+            # .env 파일에서 프론트엔드 이미지 정보만 찾아 삭제하고 새로 추가합니다.
+            sed -i '/^FRONTEND_IMAGE=/d' .env
             echo "FRONTEND_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front@${{ steps.build-and-push.outputs.digest }}" >> .env
 
-            # 3. .env 파일이 정말로 잘 만들어졌는지 내용 전체를 출력
-            echo "--- 3. Content of the created .env file ---"
+            # DB 정보 등 다른 변수들도 안전하게 추가합니다.
+            sed -i '/^DOCKERHUB_USERNAME=/d' .env
+            echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
+            sed -i '/^DB_USERNAME_PROD=/d' .env
+            echo "DB_USERNAME_PROD=${{ secrets.DB_USERNAME_PROD }}" >> .env
+            sed -i '/^DB_PASSWORD_PROD=/d' .env
+            echo "DB_PASSWORD_PROD=${{ secrets.DB_PASSWORD_PROD }}" >> .env
+            
+            echo "--- Current .env file content ---"
             cat .env
 
-            # 4. docker-compose가 이 설정을 어떻게 해석하는지 확인 (가장 중요)
-            echo "--- 4. Docker Compose effective configuration ---"
-            docker compose config
-
-            # 5. 이제 진짜 배포 실행
-            echo "--- 5. Starting deployment ---"
             docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-            docker compose pull
-            docker compose up -d --force-recreate
+            docker compose pull frontend
+            docker compose up -d --force-recreate frontend
             docker image prune -af
 
-            # 6. 최종 결과 확인
-            echo "--- 6. Final container status ---"
+            echo "--- Final container status ---"
             docker ps
