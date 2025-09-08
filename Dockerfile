@@ -13,9 +13,6 @@ FROM node:18-alpine AS builder
 # 컨테이너 내부에 '/app'이라는 작업 폴더를 만들고, 앞으로의 모든 명령을 이 폴더 안에서 실행합니다.
 WORKDIR /app
 
-ARG NEXT_PUBLIC_API_BASE_URL
-ENV NEXT_PUBLIC_API_BASE_URL=${NEXT_PUBLIC_API_BASE_URL}
-
 # 'package.json'과 'package-lock.json' 파일을 먼저 복사합니다.
 # (이유: Docker는 레이어(layer) 기반 캐싱을 사용합니다. 소스 코드는 자주 바뀌지만,
 # 의존성(package.json)은 잘 바뀌지 않습니다. 이 파일들을 먼저 복사해서 `npm install`을 실행하면,
@@ -34,12 +31,10 @@ RUN npm install
 # 현재 로컬 폴더의 모든 파일(소스 코드 등)을 컨테이너의 /app 폴더로 복사합니다.
 COPY . .
 
-# 빌드하기 전에 이전 빌드 캐시를 확실하게 삭제
-RUN rm -rf .next
-
 # 'npm run build' 스크립트를 실행하여 Next.js 애플리케이션을 프로덕션용으로 빌드합니다.
 # 이 과정이 끝나면 /app 폴더 안에 '.next' 라는 결과물 폴더가 생성됩니다.
-RUN npm run build
+# .next 폴더를 삭제하여 캐시를 초기화합니다.
+RUN rm -rf .next && npm run build
 
 # ====================================================================
 #  2단계: 실제 '실행'만을 위한 깨끗한 최종 환경 (Runner/Final Stage)
