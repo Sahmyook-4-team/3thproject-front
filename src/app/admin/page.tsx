@@ -4,8 +4,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '../../context/AuthContext';
 import api from '../utils/api';
-import Link from 'next/link';
-// axios import는 이 파일에서 더 이상 필요 없습니다.
+import styles from './page.module.css'; // CSS 모듈 import
 
 // 백엔드에서 보내주는 에러 응답의 데이터 타입을 정의합니다.
 interface ErrorResponse {
@@ -42,10 +41,8 @@ export default function AdminPage() {
       await api.post('/api/admin/users', newUser);
       alert(`사용자 '${newUser.userid}'가 성공적으로 생성되었습니다.`);
       setNewUser({ userid: '', username: '', password: '', userRole: 'STAFF' });
-    } catch (error) { // error는 'unknown' 타입입니다.
+    } catch (error) {
       let errorMessage = '사용자 생성 중 알 수 없는 오류가 발생했습니다.';
-
-      // ▼▼▼ [핵심] 'any' 없이 에러 타입을 확인하는 로직 ▼▼▼
       if (
         error &&
         typeof error === 'object' &&
@@ -58,10 +55,8 @@ export default function AdminPage() {
         'message' in error.response.data &&
         typeof (error.response.data as ErrorResponse).message === 'string'
       ) {
-        // 이 if문을 통과했다면, error.response.data.message가 존재하고 문자열임이 보장됩니다.
         errorMessage = (error.response.data as ErrorResponse).message;
       }
-      
       alert(errorMessage);
     }
   };
@@ -70,37 +65,63 @@ export default function AdminPage() {
     return <div>Loading or Access Denied...</div>;
   }
 
-  return (
-    <div style={{ padding: '2rem', maxWidth: '800px', margin: '0 auto', fontFamily: 'sans-serif' }}>
-      <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #eee', paddingBottom: '1rem' }}>
-        <h1>관리자 페이지</h1>
-        <div>
-          <span>{user?.id} 님</span>
-          <button onClick={logout} style={{ marginLeft: '1rem', cursor: 'pointer', padding: '8px 12px', border: '1px solid #ccc', borderRadius: '4px' }}>로그아웃</button>
-        </div>
-      </header>
+  // 참고: 두 번째 이미지에 있던 "사용자 채팅 페이지로 이동하기" 링크는
+  // 첫 번째 목표 이미지 디자인에는 없어서 JSX에서 제외했습니다.
+  // 필요하시면 <main> 태그 안쪽에 다시 추가하시면 됩니다.
 
-      <main style={{ marginTop: '2rem' }}>
-          {/* ▼▼▼ 이 부분을 여기에 추가해 주세요 ▼▼▼ */}
-        <div style={{ marginBottom: '2rem', padding: '1rem', background: '#e0e8ff', borderRadius: '8px' }}>
-          <Link href="/chat" style={{ 
-              textDecoration: 'none', 
-              color: '#0056b3', 
-              fontWeight: 'bold', 
-              fontSize: '1.1rem' 
-          }}>
-            → 사용자 채팅 페이지로 이동하기
-          </Link>
+  return (
+    <div className={styles.container}>
+      <main className={styles.content}>
+        <h1 className={styles.logo}>VisiDoc</h1>
+        
+        <header className={styles.header}>
+          <h2 className={styles.pageTitle}>관리자 페이지</h2>
+          <div className={styles.userInfo}>
+            <span>{user?.id} 님</span>
+            <button onClick={logout} className={styles.logoutButton}>로그아웃</button>
+          </div>
+        </header>
+
+        <div>
+          <h3 className={styles.formTitle}>새로운 사용자 생성</h3>
+          <form onSubmit={handleUserCreate} className={styles.form}>
+            <input
+              name="userid"
+              value={newUser.userid}
+              onChange={handleInputChange}
+              placeholder="사용자 아이디 (e.g., doctor_kim)"
+              required
+              className={styles.input}
+            />
+            <input
+              name="username"
+              value={newUser.username}
+              onChange={handleInputChange}
+              placeholder="사용자 이름 (e.g., 김의사)"
+              required
+              className={styles.input}
+            />
+            <input
+              name="password"
+              type="password"
+              value={newUser.password}
+              onChange={handleInputChange}
+              placeholder="초기 비밀번호"
+              required
+              className={styles.input}
+            />
+            <input
+              name="userRole"
+              value={newUser.userRole}
+              onChange={handleInputChange}
+              required
+              className={styles.input}
+            />
+            <button type="submit" className={styles.submitButton}>
+              사용자 생성
+            </button>
+          </form>
         </div>
-        {/* ▲▲▲ 여기까지 추가 ▲▲▲ */}
-        <h2 style={{ borderBottom: '2px solid #333', paddingBottom: '0.5rem' }}>새로운 사용자 생성</h2>
-        <form onSubmit={handleUserCreate} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', padding: '1.5rem', marginTop: '1rem', border: '1px solid #ddd', borderRadius: '8px', background: '#f9f9f9' }}>
-          <input name="userid" value={newUser.userid} onChange={handleInputChange} placeholder="사용자 아이디 (e.g., doctor_kim)" required style={{ padding: '10px' }} />
-          <input name="username" value={newUser.username} onChange={handleInputChange} placeholder="사용자 이름 (e.g., 김의사)" required style={{ padding: '10px' }} />
-          <input name="password" type="password" value={newUser.password} onChange={handleInputChange} placeholder="초기 비밀번호" required style={{ padding: '10px' }} />
-          <input name="userRole" value={newUser.userRole} onChange={handleInputChange} placeholder="역할 (STAFF 또는 ADMIN)" required style={{ padding: '10px' }} />
-          <button type="submit" style={{ padding: '12px', cursor: 'pointer', background: '#007bff', color: 'white', border: 'none', borderRadius: '4px' }}>사용자 생성</button>
-        </form>
       </main>
     </div>
   );
