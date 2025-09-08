@@ -33,6 +33,17 @@ jobs:
       # -------------------------------------------------------------------
       - name: Checkout Source Code
         uses: actions/checkout@v3
+
+              # ===================================================================
+      #  [핵심] 디버깅 단계: 현재 위치와 파일 구조 확인
+      # ===================================================================
+      - name: DEBUG - Check Current Path and Directory Structure
+        run: |
+          echo "--- Current working directory ---"
+          pwd
+          echo "--- List all files and directories recursively ---"
+          ls -R
+      # ===================================================================
       
       # -------------------------------------------------------------------
       #  단계 2: Docker Hub 로그인
@@ -50,10 +61,7 @@ jobs:
         id: build-and-push # 이 단계에 ID를 부여합니다.
         uses: docker/build-push-action@v4
         with:
-          # [수정] 빌드 컨텍스트를 프론트엔드 디렉토리로 정확히 지정
-          context: ./frontend
-          # [추가] 사용할 Dockerfile 경로를 명시 (컨텍스트 내 경로)
-          file: ./frontend/Dockerfile
+          context: .
           push: true
           tags: ${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front:latest
           no-cache: true
