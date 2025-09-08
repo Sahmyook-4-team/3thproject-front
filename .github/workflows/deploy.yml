@@ -70,35 +70,17 @@ jobs:
           key: ${{ secrets.AWS_SSH_PRIVATE_KEY }}
           script: |
             cd ~/app
-
-            # 1. 기존 .env 파일이 있다면 백업하거나 초기화합니다.
             > .env
-            
-            # 2. 필요한 환경 변수들을 .env 파일에 새로 씁니다.
             echo "DOCKERHUB_USERNAME=${{ secrets.DOCKERHUB_USERNAME }}" >> .env
             echo "DB_USERNAME_PROD=${{ secrets.DB_USERNAME_PROD }}" >> .env
             echo "DB_PASSWORD_PROD=${{ secrets.DB_PASSWORD_PROD }}" >> .env
 
-            # [백엔드 워크플로우인 경우]
-            # 3. [핵심] 배포할 이미지 정보를 .env 파일에 직접 추가합니다.
-            # docker-compose.yml이 이 변수를 읽어 정확한 이미지를 사용하게 됩니다.
-            echo "IMAGE_TAG_FRONT=${{ steps.build-and-push.outputs.digest }}" >> .env
-            echo "Deploying Frontend with Image Digest from .env file..."
-            
-            # 4. Docker Hub 로그인
+            # [최종 수정] '이미지이름@다이제스트' 형식의 완전한 주소를 변수에 저장
+            echo "FRONTEND_IMAGE=${{ secrets.DOCKERHUB_USERNAME }}/3thproject-front@${{ steps.build-and-push.outputs.digest }}" >> .env
+
             docker login -u ${{ secrets.DOCKERHUB_USERNAME }} -p ${{ secrets.DOCKERHUB_TOKEN }}
-
-            # 5. docker-compose.yml에 명시된 모든 이미지를 최신 버전으로 pull
-            # .env 파일 덕분에 이제 정확한 다이제스트로 이미지를 가져옵니다.
             docker compose pull
-
-            # 6. 컨테이너를 강제로 재생성하여 실행
             docker compose up -d --force-recreate
-            
-            # 7. 사용하지 않는 구버전 이미지들 삭제
             docker image prune -af
-
-            echo "Deployment completed! Checking running containers..."
-            
-            # 8. 최종 확인
+            echo "Deployment completed!"
             docker ps
