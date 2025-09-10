@@ -58,11 +58,44 @@ export default function MainPage() {
   const [saveReport, { loading: saving, error: saveError }] = useMutation(
     CREATE_OR_UPDATE_REPORT,
     {
-      onCompleted: () => {
+      onCompleted: (data) => {
         alert('소견서가 저장되었습니다.');
-        // [핵심 수정] 저장 후 최신 데이터를 다시 불러오기 위해 isRefetch를 true로 설정합니다.
-        // 이렇게 하면 화면이 깜빡이지 않고 소견서 상태('작성중') 등이 바로 업데이트됩니다.
-        handleSearch(true); 
+          // 1. mutation 결과에서 방금 저장된 최신 리포트 정보를 가져옵니다.
+        //    (mutation 이름이 'createOrUpdateReport'라고 가정)
+        const updatedReport = data.createOrUpdateReport;
+        if (!updatedReport || !selectedStudy || !selectedPatient) return; 
+
+        // 2. [핵심] handleSearch()를 호출하는 대신, 현재 state를 직접 업데이트합니다.
+        
+        // 2-1. 선택된 '스터디'의 report 정보를 최신으로 교체합니다.
+        const newSelectedStudy = {
+          ...selectedStudy,
+          report: updatedReport
+        };
+        setSelectedStudy(newSelectedStudy);
+
+        // 2-2. 전체 검색 결과 목록(searchResults)도 업데이트하여 일관성을 유지합니다.
+        const newSearchResults = searchResults.map(patient => {
+          if (patient.pid === selectedPatient.pid) {
+            // 현재 선택된 환자를 찾으면
+            return {
+              ...patient,
+              // 해당 환자의 studies 배열에서 방금 수정한 study를 찾아 교체합니다.
+              studies: patient.studies.map(study => 
+                study.studyKey === selectedStudy.studyKey ? newSelectedStudy : study
+              )
+            };
+          }
+          return patient; // 다른 환자는 그대로 둠
+        });
+        setSearchResults(newSearchResults);
+
+        // 2-3. 선택된 '환자' 정보도 새로운 study 목록으로 업데이트합니다.
+        const updatedPatient = newSearchResults.find(p => p.pid === selectedPatient.pid);
+        if(updatedPatient) {
+            setSelectedPatient(updatedPatient);
+        }
+
       },
       onError: (err) => {
         console.error('소견서 저장 실패:', err);
@@ -303,6 +336,7 @@ export default function MainPage() {
                           <p className={styles.infoItem}><strong>환자 아이디:</strong> {selectedPatient?.pid}</p>
                           <p className={styles.infoItem}><strong>환자 이름:</strong> {selectedPatient?.pname}</p>
                       </div>
+                            <div className={styles.detailTableContainer}>
                       <table className={styles.historyTable}>
                           <thead><tr><th>검사장비</th><th>검사설명</th><th>검사일시</th><th>판독상태</th><th>시리즈</th><th>이미지</th></tr></thead>
                           <tbody>
@@ -317,6 +351,7 @@ export default function MainPage() {
                           </tbody>
                       </table>
                     </div>
+                    </div>
                   ) : (<p className={styles.placeholderText}>검사를 선택하면 상세 정보를 볼 수 있습니다.</p>)}
                 </section>
                 
@@ -324,10 +359,10 @@ export default function MainPage() {
                    <h2 className={styles.panelTitle}>리포트</h2>
                    {selectedStudy ? (
                     <>
-                      <div>
+                      <div className={styles.reportContentArea}>
                           <label>[코멘트/결론]</label>
                           <textarea className={styles.reportTextarea} value={reportContentInput}
-                              onChange={handleReportContentChange} placeholder="소견을 입력하세요..." disabled={saving} />
+                              onChange={handleReportContentChange} placeholder="소견을 입력하세요." disabled={saving} />
                       </div>
                       <div style={{ marginTop: '1rem' }}>
                           <label>판독의</label>

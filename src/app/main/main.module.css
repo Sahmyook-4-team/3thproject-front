@@ -28,6 +28,7 @@
 
 .mainContent {
   padding: 1.5rem;
+  background-color: #EDEDED;
   display: grid;
   grid-template-rows: auto 1fr; /* 검색 패널(auto) / 하단 섹션(나머지 전체) */
   gap: 1.5rem;
@@ -45,19 +46,20 @@
   display: flex;
   flex-direction: column;
   gap: 1.5rem;
-  border-right: 1px solid #444;
+  border-right: 1px solid #f7f7f7;
 }
 
 .logo {
   font-size: 2rem;
   font-weight: bold;
+  font-family: serif;
   color: white;
   text-align: center;
   margin-bottom: 1rem;
 }
 
 .logo span {
-  color: #6b9f73;
+  color: #000000;
 }
 
 .filterSection, .filterGroup {
@@ -68,7 +70,7 @@
 
 .filterGroup label {
   font-weight: bold;
-  color: #777777;
+  color: #000000;
 }
 
 .dateRange {
@@ -88,7 +90,6 @@
   align-items: center;
   padding: 0.8rem 1.5rem;
   background-color: #333;
-  border-bottom: 1px solid #444;
   flex-shrink: 0;
 }
 
@@ -104,10 +105,10 @@
 /* =================================================================== */
 
 .panel {
-  background-color: #e0e0e0;
+  background-color: #E4E4E4;
   border-radius: 8px;
   padding: 1.5rem;
-  border: 1px solid #444;
+  border: 1px solid #E4E4E4;
   display: flex;
   flex-direction: column;
 }
@@ -122,9 +123,10 @@
 }
 
 .input, .select {
-  background-color: #6b9f73;
-  border: 1px solid #6b9f73;
-  color: white;
+  background-color: #D9D9D9;
+  border: 1px solid #D9D9D9;
+  font-weight: bold;
+  color: rgb(0, 0, 0);
   padding: 0.5rem 0.8rem;
   border-radius: 4px;
   /* width: 100%; 대신 아래 속성으로 변경 */
@@ -153,10 +155,10 @@
   background-color: #666;
 }
 
-.redButton { background-color: #555555; }
-.redButton:hover { background-color: #6b9f73; }
-.blueButton { background-color: #4278aa; }
-.blueButton:hover { background-color: #2b6cb0; }
+.redButton { background-color: #6b9f73; }
+.redButton:hover { background-color: #555555; }
+.blueButton { background-color: #6b9f73; }
+.blueButton:hover { background-color: #f72c2c; }
 
 
 /* =================================================================== */
@@ -199,6 +201,14 @@
   flex-shrink: 0; /* 공간이 부족해도 줄어들지 않음 */
 }
 
+.patientListPanel table {
+  table-layout: fixed; 
+}
+.patientListPanel th:nth-child(1) { width: 40%; } /* 첫 번째 열 (환자 아이디) */
+.patientListPanel th:nth-child(2) { width: 40%; } /* 두 번째 열 (환자 이름) */
+.patientListPanel th:nth-child(3) { width: 20%; } /* 세 번째 열 (검사 수) */
+
+
 /* [핵심] 검사 목록 패널: 남은 공간을 모두 차지함 */
 .studyListPanel {
   flex-grow: 1; /* 남은 모든 공간을 차지 */
@@ -212,7 +222,7 @@
 .resultsPanel th, .resultsPanel td {
   padding: 0.8rem;
   text-align: left;
-  border-bottom: 1px solid #424242;
+  border-bottom: 1px solid #D9D9D9;
   white-space: nowrap;
 }
 
@@ -230,12 +240,13 @@
 }
 
 .resultsPanel tbody tr:hover {
-  background-color: #4a4a4a;
+  background-color: hwb(0 85% 25%);
 }
 
 .selectedRow {
-  background-color: #c82333 !important;
-  color: white;
+  background-color: hwb(0 85% 25%) !important;
+  color: rgb(0, 0, 0);
+  font-weight: bold;
 }
 
 /* [핵심] 패널 내부에서 실제 스크롤을 담당하는 컨테이너 */
@@ -247,6 +258,7 @@
 
 
 /* --- 상세 정보 및 리포트 패널 --- */
+
 .patientInfo {
   display: flex;
   gap: 2rem;
@@ -257,49 +269,69 @@
   color: #ccc;
   font-size: 0.95rem;
   padding-left: 10px;
-  border-left: 3px solid #e53e3e; 
+  border-left: 3px solid #6b9f73; 
 }
 
 .infoItem strong {
   color: #f0f0f0;
 }
 
+.detailTableContainer {
+  overflow-x: auto; /* 내용이 넘칠 경우에만 가로 스크롤바를 표시합니다. */
+  margin-top: 1rem; /* 위 patientInfo 와의 간격을 위해 추가 */
+}
+
 .historyTable {
   width: 100%;
-  margin-top: 1rem;
+  /*margin-top: 1rem;*/
   border-collapse: collapse;
 }
 
 .historyTable th,
 .historyTable td {
-  border: 1px solid #555;
   padding: 8px;
   text-align: left;
   font-size: 0.9rem;
+  white-space: nowrap;
 }
 
-.historyTable th { background-color: #4A5568; color: #E2E8F0; }
-.historyTable td { background-color: #2D3748; color: #CBD5E0; }
+.historyTable th { background-color: #6b9f73; color: #000000; }
+.historyTable td { background-color: #D9D9D9; color: #000000; }
 
 .reportPanel {
   flex-grow: 1; /* 오른쪽 컬럼에서 남은 공간을 모두 차지 */
 }
 
+.reportPanel label {
+  font-weight: bold;
+}
+
+.reportContentArea {
+  flex-grow: 1; /* 남은 수직 공간을 모두 차지합니다. */
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* flex 자식 요소의 높이 계산을 위해 중요합니다. */
+}
+
 .reportPanel .reportTextarea {
   width: 100%;
-  height: 100%; /* 부모 요소에 맞춰 높이 조절 */
+  /*height: 100%; /* 부모 요소에 맞춰 높이 조절 */
+  flex-grow: 1;
   min-height: 150px;
-  background-color: #424242;
-  border: 1px solid #555;
-  color: white;
+  font-weight: bold;
+  background-color: #D9D9D9;
+  border: 1px solid #6b9f73;
+  color: rgb(2, 2, 2);
   padding: 0.8rem;
   border-radius: 4px;
   resize: vertical;
   margin-top: 0.5rem;
 }
 
+
+
 .blueButton:hover {
-  background-color: #2b6cb0;
+  background-color: #555555;
 }
 .rightContent {
   display: flex;
@@ -314,7 +346,6 @@
   align-items: center;
   padding: 0.8rem 1.5rem;
   background-color: #f7f7f7;
-  border-bottom: 1px solid #444;
   flex-shrink: 0;
 }
 
@@ -325,8 +356,7 @@
 }
 
 .logoutButton {
-  background-color: #555;
-  border: 1px solid #666;
+  background-color: #6b9f73;
 }
 
 .logoutButton:hover {
@@ -339,14 +369,14 @@
 }
 
 .infoItem {
-  color: #ccc;
+  color: #000000;
   font-size: 0.95rem;
   padding-left: 10px;
-  border-left: 3px solid #e53e3e; 
+  border-left: 3px solid #6b9f73; 
 }
 
 .infoItem strong {
-  color: #f0f0f0;
+  color: #000000;
 }
 
 /* Studies Table Styles */
@@ -413,7 +443,7 @@
 
 /* Status Styles */
 .completed {
-  color: #28a745;
+  color: #048322;
   font-weight: 500;
 }
 
@@ -424,15 +454,17 @@
 }
 
 .chatLinkButton {
-  background-color: #28a745; /* 녹색 배경 */
+  background-color: #6b9f73; /* 녹색 배경 */
   color: white;
   padding: 8px 16px;
   border-radius: 5px;
   text-decoration: none; /* 밑줄 제거 */
   font-weight: bold;
   transition: background-color 0.2s; /* 부드러운 색상 변경 효과 */
+  margin-left: -1.5rem;
 }
 
 .chatLinkButton:hover {
-  background-color: #218838; /* 마우스를 올렸을 때 약간 어두운 녹색 */
+  background-color: #666; /* 마우스를 올렸을 때 약간 어두운 녹색 */
 }
+

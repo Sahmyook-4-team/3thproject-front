@@ -9,6 +9,7 @@ import dynamic from 'next/dynamic';
 import { useSearchParams } from 'next/navigation';
 import { GET_PATIENT_WITH_STUDIES, GET_STUDY_DETAILS } from '@/graphql/queries';
 import styles from './page.module.css';
+import SeriesThumbnailItem from '@/components/SeriesThumbnailItem';
 
 import * as csTools3d from '@cornerstonejs/tools';
 import { FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward } from 'react-icons/fa';
@@ -49,6 +50,7 @@ export default function ViewerPage({ params }: PageProps) {
   const [activeTool, setActiveTool] = useState(WindowLevelTool.toolName);
   const [seriesList, setSeriesList] = useState<SeriesInfo[]>([]);
   const [selectedSeriesKey, setSelectedSeriesKey] = useState<string | null>(null);
+  const [seriesWithThumbnails, setSeriesWithThumbnails] = useState([]);
 
   const searchParams = useSearchParams();
   const studyIdFromUrl = searchParams.get('studyId');
@@ -76,6 +78,61 @@ export default function ViewerPage({ params }: PageProps) {
       }
     }
   }, [seriesData]);
+
+  useEffect(() => {
+    // API 주소는 여기서도 필요합니다.
+    const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080') + '/api';
+
+    const fetchAllThumbnails = async () => {
+      // Promise.all을 사용하여 모든 썸네일 요청을 병렬로 처리합니다.
+      const enrichedSeries = await Promise.all(
+        seriesList.map(async (series) => {
+          // 시리즈에 이미지가 없으면 썸네일 URL 없이 바로 반환
+          if (series.imagecnt === 0) {
+            return { ...series, thumbnailUrl: null };
+          }
+          try {
+            // 1. 각 시리즈의 첫 번째 이미지 경로 가져오기
+            const listUrl = `${API_BASE_URL}/v1/studies/keys/${studyIdToLoad}/${series.seriesKey}`;
+            const listResponse = await fetch(listUrl, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } });
+            const result = await listResponse.json();
+            if (!result.data || result.data.length === 0) {
+              return { ...series, thumbnailUrl: null };
+            }
+            const firstImageEncodedPath = result.data[0];
+
+            // 2. 경로로 실제 이미지 파일(Blob) 가져오기
+            const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${firstImageEncodedPath}`;
+            const imageResponse = await fetch(imageUrl, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } });
+            const imageBlob = await imageResponse.blob();
+            
+            // 3. Blob을 URL로 변환
+            const thumbnailUrl = URL.createObjectURL(imageBlob);
+            
+            // 4. 기존 시리즈 정보에 thumbnailUrl을 추가하여 반환
+            return { ...series, thumbnailUrl };
+          } catch (error) {
+            console.error(`썸네일 로딩 실패 (SeriesKey: ${series.seriesKey}):`, error);
+            return { ...series, thumbnailUrl: null }; // 실패 시 URL은 null
+          }
+        })
+      );
+      setSeriesWithThumbnails(enrichedSeries);
+    };
+
+    if (seriesList.length > 0 && studyIdToLoad) {
+      fetchAllThumbnails();
+    }
+    
+    // 컴포넌트 언마운트 시 생성된 모든 Blob URL 해제
+    return () => {
+        seriesWithThumbnails.forEach(s => {
+            if(s.thumbnailUrl) {
+                URL.revokeObjectURL(s.thumbnailUrl);
+            }
+        });
+    };
+  }, [seriesList, studyIdToLoad]); // seriesList가 확정된 후에만 실행
 
   if (loading) return <div className={styles.container}><p>로딩 중...</p></div>;
   if (error) return <div className={styles.container}><p>오류 발생: {error.message}</p></div>;
@@ -159,19 +216,17 @@ export default function ViewerPage({ params }: PageProps) {
           </div>
           
           <div className={styles.seriesThumbnails}>
-            {seriesList.map((series) => (
-              <button
+            {/* seriesList 대신 seriesWithThumbnails를 사용합니다. */}
+            {seriesWithThumbnails.map((series) => (
+              <SeriesThumbnailItem
                 key={series.seriesKey}
-                className={`${styles.thumbnailItem} ${selectedSeriesKey === series.seriesKey ? styles.activeThumbnail : ''}`}
+                series={series}
+                // studyKey는 이제 필요 없습니다.
+                isActive={selectedSeriesKey === series.seriesKey}
                 onClick={() => setSelectedSeriesKey(series.seriesKey)}
-              >
-                <div className={styles.thumbnailImage}>
-                  <span>{series.modality}</span>
-                </div>
-                <div className={styles.thumbnailDesc}>
-                  {series.seriesnum}. {series.seriesdesc || 'No Description'} ({series.imagecnt}장)
-                </div>
-              </button>
+                // 새로 가져온 썸네일 URL을 prop으로 전달합니다.
+                thumbnailUrl={series.thumbnailUrl} 
+              />
             ))}
           </div>
         </aside>
