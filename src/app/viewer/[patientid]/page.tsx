@@ -12,8 +12,9 @@ import styles from './page.module.css';
 import SeriesThumbnailItem from '@/components/SeriesThumbnailItem';
 
 import * as csTools3d from '@cornerstonejs/tools';
-import { FaArrowLeft, FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward } from 'react-icons/fa';
-const { PanTool, ZoomTool, WindowLevelTool } = csTools3d;
+
+import { FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward, FaSquare, FaArrowsAltH, FaCommentAlt, FaCircle, FaSearch } from 'react-icons/fa';
+const { PanTool, ZoomTool, WindowLevelTool, RectangleROITool, LengthTool, AngleTool, BidirectionalTool, ArrowAnnotateTool, CircleROITool, MagnifyTool } = csTools3d;
 
 const DicomViewer = dynamic(() => import('@/components/DicomViewer'), {
   ssr: false,
@@ -41,7 +42,7 @@ interface PatientInfo {
 }
 
 interface PageProps {
-  params: { 
+  params: {
     patientid: string;
   };
 }
@@ -64,7 +65,7 @@ export default function ViewerPage({ params }: PageProps) {
   });
 
   const studyIdToLoad = studyIdFromUrl || (data?.patient?.studies[0]?.studyKey);
-  
+
   const { data: seriesData } = useQuery(GET_STUDY_DETAILS, {
     variables: { studyKey: studyIdToLoad },
     skip: !studyIdToLoad,
@@ -106,10 +107,10 @@ export default function ViewerPage({ params }: PageProps) {
             const imageUrl = `${API_BASE_URL}/images/encoded-view?encodedPath=${firstImageEncodedPath}`;
             const imageResponse = await fetch(imageUrl, { headers: { 'Authorization': `Bearer ${localStorage.getItem('accessToken')}` } });
             const imageBlob = await imageResponse.blob();
-            
+
             // 3. Blob을 URL로 변환
             const thumbnailUrl = URL.createObjectURL(imageBlob);
-            
+
             // 4. 기존 시리즈 정보에 thumbnailUrl을 추가하여 반환
             return { ...series, thumbnailUrl };
           } catch (error) {
@@ -124,14 +125,14 @@ export default function ViewerPage({ params }: PageProps) {
     if (seriesList.length > 0 && studyIdToLoad) {
       fetchAllThumbnails();
     }
-    
+
     // 컴포넌트 언마운트 시 생성된 모든 Blob URL 해제
     return () => {
-        seriesWithThumbnails.forEach(s => {
-            if(s.thumbnailUrl) {
-                URL.revokeObjectURL(s.thumbnailUrl);
-            }
-        });
+      seriesWithThumbnails.forEach(s => {
+        if (s.thumbnailUrl) {
+          URL.revokeObjectURL(s.thumbnailUrl);
+        }
+      });
     };
   }, [seriesList, studyIdToLoad]); // seriesList가 확정된 후에만 실행
 
@@ -140,16 +141,16 @@ export default function ViewerPage({ params }: PageProps) {
   if (!data?.patient) return <div className={styles.container}><p>환자 정보를 찾을 수 없습니다. (ID: {patientId})</p></div>;
 
   const { patient } = data;
-  const currentStudy = studyIdToLoad 
+  const currentStudy = studyIdToLoad
     ? patient.studies.find(study => study.studyKey === studyIdToLoad)
     : patient.studies[0];
 
   const handleToolClick = (toolName: string | null) => {
-    if (toolName) {
-      setActiveTool(toolName);
-    } else {
-      alert('이 기능은 현재 준비 중입니다.');
+    if (!toolName) {
+      setActiveTool(null);
+      return;
     }
+    setActiveTool(toolName);
   };
 
   //뒤로가기 버튼을 위한 핸들러 함수
@@ -161,34 +162,79 @@ export default function ViewerPage({ params }: PageProps) {
     <div className={styles.container}>
       <header className={styles.header}>
         <div className={styles.logo}><span>Visi</span>Doc</div>
-        
+
         <div className={styles.toolbar}>
-           <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="work list (준비 중)"><FaFastBackward /></button>
+          {/* <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="work list (준비 중)"><FaFastBackward /></button>
            <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="next (준비 중)"><FaPlay /></button>
-           <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="scroll (준비 중)"><FaFastForward /></button>
-           <button 
+           <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="scroll (준비 중)"><FaFastForward /></button> */}
+          <button
             className={`${styles.toolButton} ${activeTool === WindowLevelTool.toolName ? styles.activeTool : ''}`}
-            onClick={() => handleToolClick(WindowLevelTool.toolName)} 
+            onClick={() => handleToolClick(WindowLevelTool.toolName)}
             title="밝기/대조 (W/L)">
             <FaAdjust />
           </button>
-          <button 
+          <button
             className={`${styles.toolButton} ${activeTool === PanTool.toolName ? styles.activeTool : ''}`}
-            onClick={() => handleToolClick(PanTool.toolName)} 
+            onClick={() => handleToolClick(PanTool.toolName)}
             title="이동 (Pan)">
             <FaArrowsAlt />
           </button>
-          <button 
+          <button
             className={`${styles.toolButton} ${activeTool === ZoomTool.toolName ? styles.activeTool : ''}`}
-            onClick={() => handleToolClick(ZoomTool.toolName)} 
+            onClick={() => handleToolClick(ZoomTool.toolName)}
             title="확대/축소 (Zoom)">
             <FaSearchPlus />
           </button>
-           <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="길이 측정 (준비 중)"><FaRulerHorizontal /></button>
-           <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="각도 측정 (준비 중)"><FaAngleLeft /></button>
-           <button className={styles.toolButton} onClick={() => handleToolClick(null)} title="초기화 (준비 중)"><FaUndo /></button>
+          <button
+            className={`${styles.toolButton} ${activeTool === MagnifyTool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(MagnifyTool.toolName)}
+            title="돋보기">
+            <FaSearch />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === LengthTool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(LengthTool.toolName)}
+            title="길이 측정">
+            <FaRulerHorizontal />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === BidirectionalTool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(BidirectionalTool.toolName)}
+            title="양방향 측정">
+            <FaArrowsAltH />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === AngleTool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(AngleTool.toolName)}
+            title="각도 측정">
+            <FaAngleLeft />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === RectangleROITool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(RectangleROITool.toolName)}
+            title="사각형 ROI 그리기">
+            <FaSquare />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === CircleROITool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(CircleROITool.toolName)}
+            title="원형 ROI 그리기">
+            <FaCircle />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === ArrowAnnotateTool.toolName ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(ArrowAnnotateTool.toolName)}
+            title="주석 추가">
+            <FaCommentAlt />
+          </button>
+          <button
+            className={`${styles.toolButton} ${activeTool === null ? styles.activeTool : ''}`}
+            onClick={() => handleToolClick(null)}
+            title="초기화">
+            <FaUndo />
+          </button>
         </div>
-        
+
         <div className={styles.actions}></div>
         <div className={styles.headerLeft}>
           <button className={styles.backButton} onClick={handleGoBack} title="뒤로가기">
@@ -196,7 +242,7 @@ export default function ViewerPage({ params }: PageProps) {
           </button>
         </div>
       </header>
-      
+
       <main className={styles.mainContent}>
         <aside className={styles.sidebar}>
           <div className={styles.infoBlock}>
@@ -225,7 +271,7 @@ export default function ViewerPage({ params }: PageProps) {
               </>
             )}
           </div>
-          
+
           <div className={styles.seriesThumbnails}>
             {/* seriesList 대신 seriesWithThumbnails를 사용합니다. */}
             {seriesWithThumbnails.map((series) => (
@@ -236,15 +282,15 @@ export default function ViewerPage({ params }: PageProps) {
                 isActive={selectedSeriesKey === series.seriesKey}
                 onClick={() => setSelectedSeriesKey(series.seriesKey)}
                 // 새로 가져온 썸네일 URL을 prop으로 전달합니다.
-                thumbnailUrl={series.thumbnailUrl} 
+                thumbnailUrl={series.thumbnailUrl}
               />
             ))}
           </div>
         </aside>
-        
+
         <div className={styles.viewerContainer}>
-          <DicomViewer 
-            studyKey={studyIdToLoad} 
+          <DicomViewer
+            studyKey={studyIdToLoad}
             activeTool={activeTool}
             selectedSeriesKey={selectedSeriesKey}
           />
