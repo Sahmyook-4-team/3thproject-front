@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useLazyQuery, useMutation } from '@apollo/client';
 import Link from 'next/link';
+// [수정 1] useMainState를 중괄호 {} 안에 넣어 named import 방식으로 가져옵니다.
+import { useMainState } from '@/context/MainStateContext';
 
 import { SEARCH_PATIENTS } from '@/graphql/queries'; 
 import { CREATE_OR_UPDATE_REPORT } from '@/graphql/mutations';
 import styles from './main.module.css';
 
-// --- TypeScript 타입 정의 (변경 없음) ---
+// --- TypeScript 타입 정의 (이 타입들은 MainStateContext.tsx에도 동일하게 있어야 합니다) ---
 interface Author {
   username: string;
 }
@@ -44,58 +46,54 @@ export default function MainPage() {
   const { isAuthenticated, user, logout } = useAuth();
   const router = useRouter();
 
-  const [searchInput, setSearchInput] = useState({ patientId: '', patientName: '' });
+  // [수정 2] 전역 상태 관리를 위해 useMainState 훅을 사용합니다.
+  const {
+    searchResults,
+    setSearchResults,
+    selectedPatient,
+    setSelectedPatient,
+    selectedStudy,
+    setSelectedStudy,
+    searchInput,
+    setSearchInput,
+  } = useMainState();
+
+  // [수정 3] 중복 선언되던 useState들을 모두 삭제했습니다.
+  // 아래 state들은 이 페이지에서만 사용되므로 그대로 둡니다.
   const [dateRange, setDateRange] = useState({ start: '', end: '' });
-  const [searchResults, setSearchResults] = useState<Patient[]>([]);
-  const [selectedPatient, setSelectedPatient] = useState<Patient | null>(null);
-  const [selectedStudy, setSelectedStudy] = useState<Study | null>(null);
   const [reportContentInput, setReportContentInput] = useState('');
   const [selectedModality, setSelectedModality] = useState('ALL');
 
   const [search, { loading, error, data }] = useLazyQuery<SearchPatientsQueryData>(SEARCH_PATIENTS);
-
 
   const [saveReport, { loading: saving, error: saveError }] = useMutation(
     CREATE_OR_UPDATE_REPORT,
     {
       onCompleted: (data) => {
         alert('소견서가 저장되었습니다.');
-          // 1. mutation 결과에서 방금 저장된 최신 리포트 정보를 가져옵니다.
-        //    (mutation 이름이 'createOrUpdateReport'라고 가정)
         const updatedReport = data.createOrUpdateReport;
         if (!updatedReport || !selectedStudy || !selectedPatient) return; 
 
-        // 2. [핵심] handleSearch()를 호출하는 대신, 현재 state를 직접 업데이트합니다.
-        
-        // 2-1. 선택된 '스터디'의 report 정보를 최신으로 교체합니다.
-        const newSelectedStudy = {
-          ...selectedStudy,
-          report: updatedReport
-        };
+        const newSelectedStudy = { ...selectedStudy, report: updatedReport };
         setSelectedStudy(newSelectedStudy);
 
-        // 2-2. 전체 검색 결과 목록(searchResults)도 업데이트하여 일관성을 유지합니다.
-        const newSearchResults = searchResults.map(patient => {
+        const newSearchResults = searchResults.map((patient: Patient) => { // [수정 4] 타입 명시
           if (patient.pid === selectedPatient.pid) {
-            // 현재 선택된 환자를 찾으면
             return {
               ...patient,
-              // 해당 환자의 studies 배열에서 방금 수정한 study를 찾아 교체합니다.
-              studies: patient.studies.map(study => 
+              studies: patient.studies.map((study: Study) => // [수정 4] 타입 명시
                 study.studyKey === selectedStudy.studyKey ? newSelectedStudy : study
               )
             };
           }
-          return patient; // 다른 환자는 그대로 둠
+          return patient;
         });
         setSearchResults(newSearchResults);
 
-        // 2-3. 선택된 '환자' 정보도 새로운 study 목록으로 업데이트합니다.
-        const updatedPatient = newSearchResults.find(p => p.pid === selectedPatient.pid);
+        const updatedPatient = newSearchResults.find((p: Patient) => p.pid === selectedPatient.pid); // [수정 4] 타입 명시
         if(updatedPatient) {
             setSelectedPatient(updatedPatient);
         }
-
       },
       onError: (err) => {
         console.error('소견서 저장 실패:', err);
@@ -115,31 +113,24 @@ export default function MainPage() {
       const patients = data.searchPatients;
       setSearchResults(patients);
 
-      // [핵심 수정] 검색 결과가 변경될 때, 선택된 환자와 스터디 정보를 업데이트합니다.
-      // 이렇게 해야 소견서 저장 후에도 선택 상태가 유지됩니다.
       if (selectedPatient) {
-        const updatedPatient = patients.find(p => p.pid === selectedPatient.pid);
+        const updatedPatient = patients.find((p: Patient) => p.pid === selectedPatient.pid); // [수정 4] 타입 명시
         setSelectedPatient(updatedPatient || null);
         if (selectedStudy && updatedPatient) {
-          const updatedStudy = updatedPatient.studies.find(s => s.studyKey === selectedStudy.studyKey);
+          const updatedStudy = updatedPatient.studies.find((s: Study) => s.studyKey === selectedStudy.studyKey); // [수정 4] 타입 명시
           setSelectedStudy(updatedStudy || null);
         }
       }
     }
-  }, [data]);
+  }, [data, setSearchResults, selectedPatient, setSelectedPatient, selectedStudy, setSelectedStudy]);
 
-  // [핵심 수정] selectedStudy가 변경될 때마다 소견서 내용을 업데이트하는 useEffect
   useEffect(() => {
-    // 선택된 스터지가 있다면
     if (selectedStudy) {
-      // 해당 스터디에 'report' 객체가 존재하고, 그 안에 'reportContent'가 있다면 그 내용을 사용합니다.
-      // 없다면(??), 빈 문자열('')을 사용합니다. (새로 작성하는 경우)
       setReportContentInput(selectedStudy.report?.reportContent ?? '');
     } else {
-      // 선택된 스터디가 없다면 소견서 입력창을 비웁니다.
       setReportContentInput('');
     }
-  }, [selectedStudy]); // selectedStudy state가 바뀔 때마다 이 로직이 실행됩니다.
+  }, [selectedStudy]);
 
   const isInitialMount = useRef(true); 
 
@@ -151,10 +142,10 @@ export default function MainPage() {
     if (searchResults.length > 0 || (searchInput.patientId || searchInput.patientName)) {
       handleSearch(true);
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dateRange, selectedModality]); 
 
 
-  // --- 이벤트 핸들러 (대부분 변경 없음) ---
   const handleSearchInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setSearchInput(prev => ({ ...prev, [name]: value }));
@@ -185,16 +176,16 @@ export default function MainPage() {
     });
   };
 
-  const handlePatientRowClick = (patient: Patient) => {
+  const handlePatientRowClick = (patient: Patient) => { // [수정 4] 타입 명시
     setSelectedPatient(patient);
     setSelectedStudy(null);
   };
   
-  const handleStudyRowClick = (study: Study) => {
+  const handleStudyRowClick = (study: Study) => { // [수정 4] 타입 명시
     setSelectedStudy(study);
   };
   
-  const handleStudyRowDoubleClick = (study: Study) => {
+  const handleStudyRowDoubleClick = (study: Study) => { // [수정 4] 타입 명시
     if (!selectedPatient) return;
     router.push(`/viewer/${selectedPatient.pid}?studyId=${study.studyKey}`);
   };
@@ -237,12 +228,27 @@ export default function MainPage() {
       <aside className={styles.sidebar}>
         <div className={styles.logo}><span>VisiDoc</span></div>
         <div className={styles.filterSection}>
-          <div className={styles.filterGroup}>
+         <div className={`${styles.filterGroup} ${styles.dateFilter}`}>
             <label>검사일자</label>
             <div className={styles.dateRange}>
-              <input type="date" name="start" className={styles.input} value={dateRange.start} onChange={handleDateChange} />
-              <span>~</span>
-              <input type="date" name="end" className={styles.input} value={dateRange.end} onChange={handleDateChange} />
+              <label className={styles.subLabel}>시작일</label>
+              <input 
+                type="date" 
+                name="start" 
+                className={styles.input} 
+                value={dateRange.start} 
+                onChange={handleDateChange}
+              />
+
+
+              <label className={styles.subLabel}>종료일</label>
+              <input 
+                type="date" 
+                name="end" 
+                className={styles.input} 
+                value={dateRange.end} 
+                onChange={handleDateChange}
+              />
             </div>
           </div>
           <div className={styles.filterGroup}>
@@ -291,7 +297,7 @@ export default function MainPage() {
                   <table>
                     <thead><tr><th>환자 아이디</th><th>환자 이름</th><th>검사 수</th></tr></thead>
                     <tbody>
-                      {searchResults.map((patient) => (
+                      {searchResults.map((patient: Patient) => ( // [수정 4] 타입 명시
                         <tr key={patient.pid} onClick={() => handlePatientRowClick(patient)}
                             className={selectedPatient?.pid === patient.pid ? styles.selectedRow : ''}>
                           <td>{patient.pid}</td>
@@ -310,7 +316,7 @@ export default function MainPage() {
                   <table>
                     <thead><tr><th>검사장비</th><th>검사설명</th><th>검사일시</th><th>판독상태</th></tr></thead>
                     <tbody>
-                      {selectedPatient?.studies.map((study) => (
+                      {selectedPatient?.studies.map((study: Study) => ( // [수정 4] 타입 명시
                         <tr key={study.studyKey} 
                             onClick={() => handleStudyRowClick(study)}
                             onDoubleClick={() => handleStudyRowDoubleClick(study)}
@@ -366,14 +372,13 @@ export default function MainPage() {
                       </div>
                       <div style={{ marginTop: '1rem' }}>
                           <label>판독의</label>
-                          {/* [핵심 수정] 판독의 필드를 동적으로 설정합니다. */}
                           <input type="text" className={styles.input}
                               value={
-                                selectedStudy.report?.author?.username ?? // 1. 기존 리포트가 있으면, 작성자 이름을 표시
-                                user?.username ??                         // 2. 없다면, 현재 로그인한 사용자 이름을 표시
-                                '미정'                                     // 3. 둘 다 없으면 '미정'
+                                selectedStudy.report?.author?.username ??
+                                user?.username ??
+                                '미정'
                               } 
-                              readOnly // 이 필드는 직접 수정하지 못하도록 읽기 전용으로 설정
+                              readOnly
                           />
                       </div>
       

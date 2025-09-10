@@ -6,13 +6,13 @@
 import { useState, useEffect } from 'react';
 import { useQuery } from '@apollo/client';
 import dynamic from 'next/dynamic';
-import { useSearchParams } from 'next/navigation';
+import { useSearchParams, useRouter } from 'next/navigation';
 import { GET_PATIENT_WITH_STUDIES, GET_STUDY_DETAILS } from '@/graphql/queries';
 import styles from './page.module.css';
 import SeriesThumbnailItem from '@/components/SeriesThumbnailItem';
 
 import * as csTools3d from '@cornerstonejs/tools';
-import { FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward } from 'react-icons/fa';
+import { FaArrowLeft, FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward } from 'react-icons/fa';
 const { PanTool, ZoomTool, WindowLevelTool } = csTools3d;
 
 const DicomViewer = dynamic(() => import('@/components/DicomViewer'), {
@@ -52,6 +52,7 @@ export default function ViewerPage({ params }: PageProps) {
   const [selectedSeriesKey, setSelectedSeriesKey] = useState<string | null>(null);
   const [seriesWithThumbnails, setSeriesWithThumbnails] = useState([]);
 
+  const router = useRouter();
   const searchParams = useSearchParams();
   const studyIdFromUrl = searchParams.get('studyId');
   const patientId = params.patientid;
@@ -151,6 +152,11 @@ export default function ViewerPage({ params }: PageProps) {
     }
   };
 
+  //뒤로가기 버튼을 위한 핸들러 함수
+  const handleGoBack = () => {
+    router.back();
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -184,6 +190,11 @@ export default function ViewerPage({ params }: PageProps) {
         </div>
         
         <div className={styles.actions}></div>
+        <div className={styles.headerLeft}>
+          <button className={styles.backButton} onClick={handleGoBack} title="뒤로가기">
+            <FaArrowLeft />
+          </button>
+        </div>
       </header>
       
       <main className={styles.mainContent}>

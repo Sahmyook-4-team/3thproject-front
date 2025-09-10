@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@apollo/client": "3.10.4",
+    "@apollo/experimental-nextjs-app-support": "^0.11.1",
     "@cornerstonejs/codec-charls": "^1.2.3",
     "@cornerstonejs/core": "^3.33.2",
     "@cornerstonejs/dicom-image-loader": "^3.33.2",
