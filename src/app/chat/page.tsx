@@ -173,7 +173,7 @@ export default function ChatPage() {
                             <span className={`${styles.statusIndicator} ${onlineUsers[chatUser.userid] ? styles.online : styles.offline}`}></span>
                             
                             <div className={styles.userInfo}>
-                                {chatUser.username} ({chatUser.userRole})
+                                {chatUser.username}
                             </div>
 
                             {unreadCounts[chatUser.userid] > 0 && (

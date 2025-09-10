@@ -63,22 +63,50 @@
 }
 
 .filterSection, .filterGroup {
+  font-weight: bold;
   display: flex;
   flex-direction: column;
   gap: 1rem;
 }
 
 .filterGroup label {
-  font-weight: bold;
   color: #000000;
 }
 
 .dateRange {
   display: flex;
-  align-items: center;
-  gap: 0.5rem;
+  flex-direction: column; 
+  align-items: stretch; /* 아이템들이 꽉 차도록 설정 */
+  gap: 0.5rem; /* 입력창 사이의 간격을 줍니다. */
 }
 
+/* [선택 사항] 날짜가 선택되지 않았을 때 placeholder 텍스트를 보여주는 스타일 */
+.dateRange input[type="date"]::before {
+  content: attr(placeholder);
+  position: absolute;
+  color: #6c757d; /* placeholder 색상 */
+}
+.dateRange input[type="date"]:focus::before,
+.dateRange input[type="date"]:valid::before {
+  display: none; /* 날짜가 선택되면 placeholder 숨김 */
+}
+.input {
+  position: relative; /* placeholder를 위해 추가 */
+}
+
+.subLabel {
+  font-size: 12px;      /* 글씨 크기를 작게 */
+  font-weight: normal;  /* 굵기 보통으로 */
+  color: #555;         /* 색상을 약간 연하게 */
+  margin-left: 2px;
+}
+
+.dateSeparator {
+  text-align: center; /* 가운데 정렬 */
+  color: #888;
+  font-size: 1.2rem;
+  line-height: 0.5; /* 세로 간격 줄이기 */
+}
 
 /* =================================================================== */
 /*  3. 오른쪽 상단 헤더
@@ -231,6 +259,7 @@
   position: sticky; /* 스크롤 시 상단에 고정 */
   top: 0;
   z-index: 1;
+  color: #FFFFFF;
 }
 
 

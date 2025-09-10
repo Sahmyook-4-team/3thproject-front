@@ -17,8 +17,33 @@
   border-bottom: 1px solid #F7F7F7;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  /* justify-content: space-between; */
+  gap: 1.5rem; /* [추가] 헤더 아이템 간의 간격을 줍니다. */
 }
+
+/* 헤더 왼쪽 영역 (뒤로가기 버튼) */
+.headerLeft {
+  flex-shrink: 0; /* 크기가 줄어들지 않도록 */
+}
+
+.backButton {
+  background: #f0f0f0;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  padding: 10px 12px; /* 툴바 버튼과 비슷한 크기 */
+  font-size: 1.1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  color: #333;
+}
+.backButton:hover {
+  background: #e0e0e0;
+  border-color: #ccc;
+}
+
 
 .logo {
   font-size: 2rem;

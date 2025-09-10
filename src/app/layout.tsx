@@ -7,11 +7,15 @@ import { Inter } from "next/font/google";
 import "./globals.css";
 
 // 1. ApolloProvider와 client를 다시 import 합니다.
-import { ApolloProvider } from "@apollo/client";
-import client from "@/lib/apollo-client";
+import { ApolloProvider } from "@apollo/client" 
+import client from "@/lib/apollo-client"; 
 
 // 2. AuthProvider는 그대로 둡니다.
 import { AuthProvider } from "@/context/AuthContext";
+
+import { MainStateProvider } from '@/context/MainStateContext'; 
+import { ApolloWrapper } from "@/lib/apollo-wrapper"; 
+
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -35,13 +39,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={inter.className}>
-        {/* 3. ApolloWrapper 대신 ApolloProvider를 직접 사용합니다. */}
-        <ApolloProvider client={client}>
+      <body>
+        <ApolloWrapper>
           <AuthProvider>
-            {children}
+            {/* [수정 2] AuthProvider 안쪽을 MainStateProvider로 감싸줍니다. */}
+            <MainStateProvider>
+              {children}
+            </MainStateProvider>
           </AuthProvider>
-        </ApolloProvider>
+        </ApolloWrapper>
       </body>
     </html>
   );

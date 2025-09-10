@@ -18,7 +18,6 @@ export default function AdminPage() {
   useEffect(() => {
     if (isAuthenticated === null) return;
     if (!isAuthenticated || !user?.role.includes('ROLE_ADMIN')) {
-      alert('접근 권한이 없습니다.');
       router.push('/login');
     }
   }, [isAuthenticated, user, router]);
@@ -27,7 +26,6 @@ export default function AdminPage() {
     userid: '',
     username: '',
     password: '',
-    userRole: 'STAFF',
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -40,7 +38,7 @@ export default function AdminPage() {
     try {
       await api.post('/api/admin/users', newUser);
       alert(`사용자 '${newUser.userid}'가 성공적으로 생성되었습니다.`);
-      setNewUser({ userid: '', username: '', password: '', userRole: 'STAFF' });
+      setNewUser({ userid: '', username: '', password: '' });
     } catch (error) {
       let errorMessage = '사용자 생성 중 알 수 없는 오류가 발생했습니다.';
       if (
@@ -110,13 +108,7 @@ export default function AdminPage() {
               required
               className={styles.input}
             />
-            <input
-              name="userRole"
-              value={newUser.userRole}
-              onChange={handleInputChange}
-              required
-              className={styles.input}
-            />
+            
             <button type="submit" className={styles.submitButton}>
               사용자 생성
             </button>
