@@ -6,7 +6,21 @@ import { Enums, init as coreInit, RenderingEngine } from '@cornerstonejs/core';
 import { init as dicomImageLoaderInit } from '@cornerstonejs/dicom-image-loader';
 import * as csTools3d from '@cornerstonejs/tools';
 
-const { PanTool, ZoomTool, StackScrollTool, WindowLevelTool, ToolGroupManager, Enums: csToolsEnums } = csTools3d;
+const { 
+  PanTool, 
+  ZoomTool, 
+  StackScrollTool, 
+  WindowLevelTool, 
+  LengthTool, 
+  AngleTool, 
+  RectangleROITool,
+  BidirectionalTool,
+  ArrowAnnotateTool,
+  CircleROITool,
+  MagnifyTool,
+  ToolGroupManager, 
+  Enums: csToolsEnums 
+} = csTools3d;
 
 // Cornerstone 라이브러리 초기화 (한 번만 실행)
 let isCornerstoneInitialized = false;
@@ -83,10 +97,24 @@ const CornerstoneViewer = forwardRef(({ imageIds, toolGroupId, activeTool, start
         csTools3d.addTool(ZoomTool);
         csTools3d.addTool(StackScrollTool);
         csTools3d.addTool(WindowLevelTool);
+        csTools3d.addTool(LengthTool);
+        csTools3d.addTool(AngleTool);
+        csTools3d.addTool(RectangleROITool);
+        csTools3d.addTool(BidirectionalTool);
+        csTools3d.addTool(ArrowAnnotateTool);
+        csTools3d.addTool(CircleROITool);
+        csTools3d.addTool(MagnifyTool);
         toolGroup.addTool(PanTool.toolName);
         toolGroup.addTool(ZoomTool.toolName);
         toolGroup.addTool(StackScrollTool.toolName);
         toolGroup.addTool(WindowLevelTool.toolName);
+        toolGroup.addTool(LengthTool.toolName);
+        toolGroup.addTool(AngleTool.toolName);
+        toolGroup.addTool(RectangleROITool.toolName);
+        toolGroup.addTool(BidirectionalTool.toolName);
+        toolGroup.addTool(ArrowAnnotateTool.toolName);
+        toolGroup.addTool(CircleROITool.toolName);
+        toolGroup.addTool(MagnifyTool.toolName);
       }
 
       toolGroup.addViewport(viewportId, renderingEngineId);
@@ -116,7 +144,23 @@ const CornerstoneViewer = forwardRef(({ imageIds, toolGroupId, activeTool, start
     toolGroup.setToolActive(PanTool.toolName, { bindings: [{ mouseButton: csToolsEnums.MouseBindings.Auxiliary }] }); // 휠 클릭
 
     // "툴바에서 선택하는" 도구들의 상태를 설정합니다.
-    const toolsForPrimaryMouseButton = [WindowLevelTool.toolName, PanTool.toolName, ZoomTool.toolName];
+
+    if (!activeTool) {
+      csTools3d.annotation.state.removeAllAnnotations();
+    }
+
+    const toolsForPrimaryMouseButton = [
+      WindowLevelTool.toolName, 
+      PanTool.toolName, 
+      ZoomTool.toolName, 
+      LengthTool.toolName, 
+      AngleTool.toolName, 
+      RectangleROITool.toolName,
+      BidirectionalTool.toolName,
+      ArrowAnnotateTool.toolName,
+      CircleROITool.toolName,
+      MagnifyTool.toolName
+    ];
     toolsForPrimaryMouseButton.forEach(toolName => {
       if (toolName === activeTool) {
         toolGroup.setToolActive(toolName, { bindings: [{ mouseButton: csToolsEnums.MouseBindings.Primary }] });
