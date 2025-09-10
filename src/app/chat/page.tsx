@@ -34,6 +34,9 @@ export default function ChatPage() {
     const [onlineUsers, setOnlineUsers] = useState<OnlineUserMap>({});
     const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
+    const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({});
+    const [lastMessageTimestamps, setLastMessageTimestamps] = useState<Record<string, string>>({});
+
     // 최초 데이터 로딩 useEffect
     useEffect(() => {
         if (!isAuthenticated) {
@@ -64,10 +67,14 @@ export default function ChatPage() {
         subscriptions.push(
             stompClient.subscribe(`/user/${user.id}/queue/private`, (message) => {
                 const receivedMessage: ChatMessage = JSON.parse(message.body);
+                setLastMessageTimestamps(prev => ({ ...prev, [receivedMessage.senderId]: receivedMessage.createdAt }));
                 if (selectedUser && receivedMessage.senderId === selectedUser.userid) {
                     setMessages(prev => [...prev, receivedMessage]);
                 } else {
-                    alert(`새 메시지 도착: ${receivedMessage.senderName}`);
+                    setUnreadCounts(prev => ({
+                        ...prev,
+                        [receivedMessage.senderId]: (prev[receivedMessage.senderId] || 0) + 1
+                    }));
                 }
             })
         );
@@ -106,6 +113,7 @@ export default function ChatPage() {
     // 메시지 전송 핸들러
     const handleSendMessage = () => {
         if (chatInput && stompClient && user && selectedUser) {
+            const now = new Date().toISOString();
             const message: Omit<ChatMessage, 'createdAt'> = {
                 content: chatInput,
                 senderId: user.id,
@@ -117,11 +125,39 @@ export default function ChatPage() {
                 destination: '/app/chat.privateMessage',
                 body: JSON.stringify(message)
             });
+            
 
-            setMessages(prev => [...prev, { ...message, createdAt: new Date().toISOString() }]);
+            setMessages(prev => [...prev, { ...message, createdAt: now }]);
+            setLastMessageTimestamps(prev => ({ ...prev, [selectedUser.userid]: now }));
             setChatInput('');
         }
     };
+
+  // [신규] 사용자 선택 핸들러 (안 읽은 메시지 초기화 로직 포함)
+    const handleUserSelect = (userToSelect: ChatUser) => {
+        setSelectedUser(userToSelect);
+        // 이 사용자의 안 읽은 메시지 카운트가 있다면 0으로 초기화
+        if (unreadCounts[userToSelect.userid]) {
+            setUnreadCounts(prev => {
+                const newCounts = { ...prev };
+                delete newCounts[userToSelect.userid]; // 해당 유저 키를 제거
+                return newCounts;
+            });
+        }
+    };
+
+    // [신규] 렌더링 직전에 사용자 목록을 마지막 메시지 시간순으로 정렬
+    const sortedUsers = [...allUsers].sort((a, b) => {
+        const timeA = lastMessageTimestamps[a.userid];
+        const timeB = lastMessageTimestamps[b.userid];
+        
+        if (timeA && !timeB) return -1; // A만 시간 정보가 있으면 A가 위로
+        if (!timeA && timeB) return 1;  // B만 시간 정보가 있으면 B가 위로
+        if (!timeA && !timeB) return 0; // 둘 다 없으면 순서 유지
+
+        // 둘 다 시간 정보가 있으면 최신순(내림차순)으로 정렬
+        return new Date(timeB).getTime() - new Date(timeA).getTime();
+    });
 
     // ▼▼▼ [수정] 비어있던 JSX 렌더링 부분을 복원했습니다 ▼▼▼
     return (
@@ -129,14 +165,22 @@ export default function ChatPage() {
             <aside className={styles.userSidebar}>
                 <div className={styles.sidebarHeader}><h3>대화 상대</h3></div>
                 <ul className={styles.userList}>
-                    {allUsers.map(chatUser => (
+                    {sortedUsers.map(chatUser => (
                         <li key={chatUser.userid}
                             className={`${styles.userItem} ${selectedUser?.userid === chatUser.userid ? styles.selected : ''}`}
-                            onClick={() => setSelectedUser(chatUser)}>
+                            onClick={() => handleUserSelect(chatUser)}>
                             
                             <span className={`${styles.statusIndicator} ${onlineUsers[chatUser.userid] ? styles.online : styles.offline}`}></span>
                             
-                            {chatUser.username} ({chatUser.userRole})
+                            <div className={styles.userInfo}>
+                                {chatUser.username} ({chatUser.userRole})
+                            </div>
+
+                            {unreadCounts[chatUser.userid] > 0 && (
+                                <span className={styles.unreadBadge}>
+                                    {unreadCounts[chatUser.userid]}
+                                </span>
+                            )}
                         </li>
                     ))}
                 </ul>
@@ -150,7 +194,11 @@ export default function ChatPage() {
                             {messages.map((msg, index) => (
                                 <div key={index} className={`${styles.messageBubble} ${msg.senderId === user?.id ? styles.sent : styles.received}`}>
                                     <p>{msg.content}</p>
-                                    <span className={styles.timestamp}>{new Date(msg.createdAt).toLocaleTimeString()}</span>
+                                    <span className={styles.timestamp}>{new Date(msg.createdAt).toLocaleTimeString('ko-KR', {
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            hour12: true // '오전/오후' 표시를 위해 (원치 않으면 false)
+                                        })}</span>
                                 </div>
                             ))}
                             <div ref={messagesEndRef} />

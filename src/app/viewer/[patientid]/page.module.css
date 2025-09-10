@@ -21,9 +21,11 @@
 }
 
 .logo {
-  font-size: 1.5rem;
+  font-size: 2rem;
+  font-family: serif;
   font-weight: bold;
   color: rgb(0, 0, 0);
+  margin-left: 3rem;
 }
 
 .logo span {
@@ -36,7 +38,7 @@
   align-items: center;
   justify-content: flex-start;
   flex-grow: 1;
-  padding-left: 11rem;
+  padding-left: 5.5rem;
 }
 
 .toolButton {
@@ -54,14 +56,14 @@
 }
 
 .toolButton:hover {
-  background: #e0e0e0;
-  border-color: #ccc;
+  background: #D9D9D9;
+  border-color: #D9D9D9;
 }
 
 .activeTool {
-  background: #007bff;
+  background: #6b9f73;
   color: white;
-  border-color: #0056b3;
+  border-color: #6b9f73;
 }
 
 .actions {

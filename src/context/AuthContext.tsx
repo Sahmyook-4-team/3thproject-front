@@ -61,8 +61,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       client.onConnect = () => {
         console.log('Global WebSocket Connected!');
         client.publish({
-            destination: '/app/chat.join',
-            body: JSON.stringify({ senderId: user.id, senderName: user.username })
+            destination: '/app/chat.addUser',
+            body: JSON.stringify({ 
+              userid: user.id, 
+              username: user.username, 
+              userRole: user.role 
+            })
         });
       };
 
