@@ -63,7 +63,7 @@ export default function MainPage() {
           // 1. mutation 결과에서 방금 저장된 최신 리포트 정보를 가져옵니다.
         //    (mutation 이름이 'createOrUpdateReport'라고 가정)
         const updatedReport = data.createOrUpdateReport;
-        if (!updatedReport || !selectedStudy || !selectedPatient) return;
+        if (!updatedReport || !selectedStudy || !selectedPatient) return; 
 
         // 2. [핵심] handleSearch()를 호출하는 대신, 현재 state를 직접 업데이트합니다.
         
