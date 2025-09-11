@@ -122,3 +122,22 @@
   .submitButton:hover {
     background-color: #6b9f73ab;
   }
+  .chatLinkButton {
+  display: block; /* 버튼이 한 줄을 모두 차지하도록 설정 */
+  width: 100%;    /* 너비를 100%로 설정 */
+  padding: 14px 16px;
+  border: none;
+  background-color: #495057; /* 다른 버튼과 구분되는 진한 회색 */
+  color: white;
+  border-radius: 5px;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  margin-bottom: 2.5rem; /* 아래 폼과의 간격을 줍니다 */
+  transition: background-color 0.2s;
+}
+
+.chatLinkButton:hover {
+  background-color: #343a40; /* 마우스를 올렸을 때 더 진한 색으로 변경 */
+}
