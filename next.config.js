@@ -28,6 +28,10 @@ const nextConfig = {
           source: '/graphql',
           destination: `${apiUrl}/graphql`,
         },
+        {
+        source: '/ws/:path*',
+        destination: 'http://localhost:8080/ws/:path*',
+      },
       ];
     }
     // npm run build (배포 환경)

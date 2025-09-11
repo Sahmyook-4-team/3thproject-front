@@ -60,22 +60,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (user && !stompClient) {
       const client = new Client({
-        webSocketFactory: () => new SockJS(`${process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8080'}/ws`),
+        webSocketFactory: () => new SockJS('/ws'),
         reconnectDelay: 5000,
       });
 
       client.onConnect = () => {
         console.log('Global WebSocket Connected!');
         client.publish({
-            destination: '/app/chat.addUser',
-            body: JSON.stringify({ 
-              userid: user.id, 
-              username: user.username, 
-              userRole: user.role 
-            })
-        });
-      };
-
+        destination: '/app/chat.join', // addUser -> join
+        body: JSON.stringify({ 
+          senderId: user.id,         // userid -> senderId
+          senderName: user.username, // username -> senderName
+          // userRole은 join 메시지 DTO에 없다면 제거
+        })
+    });
+};
       client.activate();
       setStompClient(client);
     }

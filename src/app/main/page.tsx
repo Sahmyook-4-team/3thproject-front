@@ -270,7 +270,7 @@ export default function MainPage() {
               <Link href="/chat" className={styles.chatLinkButton}>채팅</Link>
             </div>
             <div className={styles.userInfo}>
-                <span>{user?.username} 님 ({user?.role})</span>
+                <span>{user?.username} 님</span>
                 <button onClick={logout} className={`${styles.button} ${styles.logoutButton}`}>
                 로그아웃
                 </button>
