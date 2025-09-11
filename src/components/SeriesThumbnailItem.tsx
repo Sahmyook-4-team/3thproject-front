@@ -8,13 +8,14 @@ import styles from './SeriesThumbnailItem.module.css';
 export default function SeriesThumbnailItem({ series, isActive, onClick, thumbnailUrl }) {
     console.log(series);
     console.log(thumbnailUrl);
+
+    thumbnailUrl = ''; //임시
   return (
     <button
       className={`${styles.thumbnailItem} ${isActive ? styles.activeThumbnail : ''}`}
       onClick={onClick}
     >
-      <div className={styles.thumbnailImage}>
-        {/* thumbnailUrl이 있으면 img 태그를, 없으면 Modality를 보여줍니다. */}
+      {/* <div className={styles.thumbnailImage}>
         {thumbnailUrl ? (
           <img src={thumbnailUrl} alt={series.seriesdesc || 'Series thumbnail'} />
         ) : (
@@ -23,7 +24,13 @@ export default function SeriesThumbnailItem({ series, isActive, onClick, thumbna
       </div>
       <div className={styles.thumbnailDesc}>
         {series.seriesnum}. {series.seriesdesc || 'No Description'} ({series.imagecnt}장)
+      </div> */}
+      <div className={styles.thumbnailDesc}>
+        {series.seriesnum}. {series.seriesdesc || 'No Description'} ({series.imagecnt}장)
       </div>
     </button>
   );
 }
+
+
+
