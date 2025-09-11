@@ -69,36 +69,29 @@ export default function MainPage() {
   const [saveReport, { loading: saving, error: saveError }] = useMutation(
     CREATE_OR_UPDATE_REPORT,
     {
+      refetchQueries: [
+        {
+          query: SEARCH_PATIENTS,
+          variables: {
+            pid: searchInput.patientId,
+            pname: searchInput.patientName,
+            studyDateStart: dateRange.start || null,
+            studyDateEnd: dateRange.end || null,
+            modality: selectedModality,
+          },
+        },
+      ],
       onCompleted: (data) => {
         alert('소견서가 저장되었습니다.');
         const updatedReport = data.createOrUpdateReport;
-        if (!updatedReport || !selectedStudy || !selectedPatient) return; 
-
-        const newSelectedStudy = { ...selectedStudy, report: updatedReport };
-        setSelectedStudy(newSelectedStudy);
-
-        const newSearchResults = searchResults.map((patient: Patient) => { // [수정 4] 타입 명시
-          if (patient.pid === selectedPatient.pid) {
-            return {
-              ...patient,
-              studies: patient.studies.map((study: Study) => // [수정 4] 타입 명시
-                study.studyKey === selectedStudy.studyKey ? newSelectedStudy : study
-              )
-            };
-          }
-          return patient;
-        });
-        setSearchResults(newSearchResults);
-
-        const updatedPatient = newSearchResults.find((p: Patient) => p.pid === selectedPatient.pid); // [수정 4] 타입 명시
-        if(updatedPatient) {
-            setSelectedPatient(updatedPatient);
+        if (selectedStudy) {
+          setSelectedStudy({ ...selectedStudy, report: updatedReport });
         }
       },
       onError: (err) => {
         console.error('소견서 저장 실패:', err);
         alert(`소견서 저장에 실패했습니다: ${err.message}`);
-      }
+      },
     }
   );
 
