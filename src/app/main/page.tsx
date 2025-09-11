@@ -270,7 +270,7 @@ export default function MainPage() {
               <Link href="/chat" className={styles.chatLinkButton}>채팅</Link>
             </div>
             <div className={styles.userInfo}>
-                <span>{user?.username} 님 ({user?.role})</span>
+                <span>{user?.username} 님 </span>
                 <button onClick={logout} className={`${styles.button} ${styles.logoutButton}`}>
                 로그아웃
                 </button>
@@ -370,31 +370,27 @@ export default function MainPage() {
                           <textarea className={styles.reportTextarea} value={reportContentInput}
                               onChange={handleReportContentChange} placeholder="소견을 입력하세요." disabled={saving} />
                       </div>
-                      <div style={{ marginTop: '1rem' }}>
-                          <label>판독의</label>
-                          <input type="text" className={styles.input}
-                              value={
-                                selectedStudy.report?.author?.username ??
-                                user?.username ??
-                                '미정'
-                              } 
-                              readOnly
-                          />
+                      
+                      <div className={styles.reportMetaInfo}>
+                        <label>판독의 :</label>
+                        <span className={styles.reportAuthorName}>
+                          {selectedStudy.report?.author?.username ?? user?.username ?? '미정'}
+                        </span>
                       </div>
       
-                      <div style={{ marginTop: '1rem', textAlign: 'right' }}>
+                      <div className={styles.reportActions}>
                           <button className={`${styles.button} ${styles.blueButton}`}
                               onClick={handleSaveReport} disabled={saving}>
                               {saving ? '저장 중...' : '저장'}
                           </button>
                       </div>
+                      
                       {saveError && <p style={{ color: 'red', marginTop: '1rem' }}>저장 실패: {saveError.message}</p>}
                     </>
                    ) : (<p className={styles.placeholderText}>검사를 선택하면 리포트 내용을 볼 수 있습니다.</p>)}
                 </section>
-            </div>
           </div>
-
+          </div>
           {error && <p style={{ color: 'red', marginTop: '1rem' }}>데이터 로딩 실패: {error.message}</p>}
         </main>
       </div>
