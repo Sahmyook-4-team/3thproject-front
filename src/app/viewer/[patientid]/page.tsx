@@ -13,7 +13,7 @@ import SeriesThumbnailItem from '@/components/SeriesThumbnailItem';
 
 import * as csTools3d from '@cornerstonejs/tools';
 
-import { FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward, FaSquare, FaArrowsAltH, FaCommentAlt, FaCircle, FaSearch } from 'react-icons/fa';
+import { FaAdjust, FaArrowsAlt, FaSearchPlus, FaRulerHorizontal, FaUndo, FaAngleLeft, FaFastBackward, FaPlay, FaFastForward, FaSquare, FaArrowsAltH, FaCommentAlt, FaCircle, FaSearch, FaArrowLeft } from 'react-icons/fa'; // ★★★ 여기에 FaArrowLeft 추가! ★★★
 const { PanTool, ZoomTool, WindowLevelTool, RectangleROITool, LengthTool, AngleTool, BidirectionalTool, ArrowAnnotateTool, CircleROITool, MagnifyTool } = csTools3d;
 
 const DicomViewer = dynamic(() => import('@/components/DicomViewer'), {
