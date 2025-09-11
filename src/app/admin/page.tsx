@@ -79,6 +79,12 @@ export default function AdminPage() {
             <button onClick={logout} className={styles.logoutButton}>로그아웃</button>
           </div>
         </header>
+         <button 
+          onClick={() => router.push('/chat')} // 클릭 시 '/chat' 경로로 이동
+          className={styles.chatLinkButton}    // 새로운 CSS 클래스 적용
+        >
+          사용자 채팅 페이지로 이동
+        </button>
 
         <div>
           <h3 className={styles.formTitle}>새로운 사용자 생성</h3>

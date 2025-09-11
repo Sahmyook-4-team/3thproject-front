@@ -58,9 +58,17 @@ export default function ChatPage() {
 
     // WebSocket 구독 전용 로직
     useEffect(() => {
-        if (!stompClient || !stompClient.connected || !user) {
+         if (!stompClient || !stompClient.connected || !user) {
             return;
         }
+        
+        // [추가된 부분 1] "저 접속했어요!" 라고 서버에 알리기 (출석 체크)
+        // 웹소켓 연결이 확인되면, 바로 '/app/chat.join'으로 자신의 정보를 보냅니다.
+        // 이 메시지를 받은 서버는 해당 유저를 온라인 목록에 추가합니다.
+        stompClient.publish({
+            destination: '/app/chat.join',
+            body: JSON.stringify({ senderId: user.id, senderName: user.username })
+        });
         
         const subscriptions: StompSubscription[] = [];
 
