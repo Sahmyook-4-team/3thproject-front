@@ -26,6 +26,7 @@ export default function AdminPage() {
     userid: '',
     username: '',
     password: '',
+    role: 'STAFF',    // 미리 staff 로 지정
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -38,7 +39,7 @@ export default function AdminPage() {
     try {
       await api.post('/api/admin/users', newUser);
       alert(`사용자 '${newUser.userid}'가 성공적으로 생성되었습니다.`);
-      setNewUser({ userid: '', username: '', password: '' });
+      setNewUser({ userid: '', username: '', password: '', role: 'STAFF' });
     } catch (error) {
       let errorMessage = '사용자 생성 중 알 수 없는 오류가 발생했습니다.';
       if (
