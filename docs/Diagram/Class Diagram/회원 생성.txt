@@ -1,0 +1,61 @@
+classDiagram
+    class AdminController {
+        <<RestController>>
+        -UserService userService
+        +createUser(UserCreateRequestDto): ResponseEntity~UserResponseDto~
+    }
+
+    class UserService {
+        <<Service>>
+        -UserRepository userRepository
+        -PasswordEncoder passwordEncoder
+        +createUser(UserCreateRequestDto): UserResponseDto
+        +getUser(String): UserResponseDto
+        +updateUser(String, UserUpdateRequestDto): UserResponseDto
+        +deleteUser(String): void
+    }
+
+    class User {
+        <<Entity>>
+        -String userid
+        -String username
+        -String password
+        -String email
+        -String role
+        -LocalDateTime createdAt
+        -LocalDateTime updatedAt
+        +toDto(): UserResponseDto
+    }
+
+    class UserRepository {
+        <<Repository>>
+        +findByUserid(String): User
+        +existsByUserid(String): boolean
+        +save(User): User
+        +delete(User): void
+    }
+
+    class UserCreateRequestDto {
+        <<Data Transfer Object>>
+        -String userid
+        -String username
+        -String password
+        -String email
+        -String role
+    }
+
+    class UserResponseDto {
+        <<Data Transfer Object>>
+        -String userid
+        -String username
+        -String userRole
+        -String email
+        -LocalDateTime createdAt
+    }
+
+    AdminController --> UserService
+    UserService --> UserRepository
+    UserService ..> UserCreateRequestDto
+    UserService ..> UserResponseDto
+    UserRepository --> User
+    User ..> UserResponseDto

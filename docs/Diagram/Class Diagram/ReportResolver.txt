@@ -1,0 +1,80 @@
+classDiagram
+    class ReportResolver {
+        <<Controller>>
+        -ReportService reportService
+        +reportByStudyKey(Long studyKey): ReportResponseDto
+        +createOrUpdateReport(ReportInput): ReportResponseDto
+        +getAuthor(ReportResponseDto): UserResponseDto
+    }
+
+    class ReportService {
+        <<Service>>
+        +getReportByStudyKey(Long): ReportEntity
+        +createOrUpdateReport(Long, String, String, String): ReportEntity
+    }
+
+    class ReportInput {
+        <<Record>>
+        +Long studyKey
+        +String reportContent
+        +ReportStatus reportStatus
+    }
+
+    class ReportResponseDto {
+        <<Data Transfer Object>>
+        -Long reportId
+        -Long studyKey
+        -String reportStatus
+        -String reportContent
+        -OffsetDateTime createdAt
+        -OffsetDateTime updatedAt
+        -UserResponseDto author
+        +fromEntity(Report): ReportResponseDto
+    }
+
+    class ReportStatus {
+        <<Enumeration>>
+        DRAFT
+        PENDING_REVIEW
+        COMPLETED
+        REJECTED
+    }
+
+    class UserResponseDto {
+        <<Data Transfer Object>>
+        -String userId
+        -String username
+        -String email
+        -String role
+        +from(User): UserResponseDto
+    }
+
+    class ReportEntity {
+        <<Entity>>
+        -Long reportId
+        -Long studyKey
+        -String reportStatus
+        -String reportContent
+        -User author
+        -OffsetDateTime createdAt
+        -OffsetDateTime updatedAt
+    }
+
+    class User {
+        <<Entity>>
+        -String userId
+        -String username
+        -String password
+        -String email
+        -String role
+    }
+
+    %% Relationships
+    ReportResolver --> ReportService
+    ReportResolver ..> ReportInput : Uses
+    ReportResolver ..> ReportResponseDto : Returns
+    ReportResponseDto --> UserResponseDto : Contains
+    ReportService --> ReportEntity : Manages
+    ReportEntity --> User : References
+    ReportInput --> ReportStatus : Uses
+    ReportResponseDto --> ReportStatus : Contains

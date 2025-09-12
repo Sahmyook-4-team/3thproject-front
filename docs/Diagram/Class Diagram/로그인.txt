@@ -1,0 +1,63 @@
+classDiagram
+    class AuthController {
+        <<RestController>>
+        -AuthService authService
+        +login(LoginRequestDto)
+        +validateToken()
+        +getUserInfo()
+    }
+
+    class AuthService {
+        <<Service>>
+        -AuthenticationManager authenticationManager
+        -JwtTokenProvider jwtTokenProvider
+        -UserDetailsService userDetailsService
+        -UserRepository userRepository
+        +login(LoginRequestDto) TokenDto
+        +validateToken(String) boolean
+        +getUserInfo(String) UserDto
+    }
+
+    class JwtTokenProvider {
+        <<Component>>
+        -Key key
+        +createToken(Authentication) String
+        +validateToken(String) boolean
+        +getAuthentication(String) Authentication
+        +getUserPk(String) String
+    }
+
+    class LoginRequestDto {
+        <<Data Transfer Object>>
+        -String userid
+        -String password
+    }
+
+    class TokenDto {
+        <<Data Transfer Object>>
+        -String grantType
+        -String accessToken
+    }
+
+    class User {
+        <<Entity>>
+        -Long id
+        -String userid
+        -String password
+        -String name
+        -String email
+        -String role
+    }
+
+    class UserRepository {
+        <<Repository>>
+        +findByUserid(String) User
+        +existsByUserid(String) boolean
+    }
+
+    AuthController --> AuthService
+    AuthService --> JwtTokenProvider
+    AuthService --> UserRepository
+    UserRepository --> User
+    AuthService ..> LoginRequestDto
+    AuthService ..> TokenDto

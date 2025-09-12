@@ -1,0 +1,57 @@
+classDiagram
+    class DicomRestController {
+        <<RestController>>
+        -ImageService imageService
+        +getSeriesImagesByKeys(Long studyKey, Long seriesKey): ResponseEntity~DicomResponseDto~
+    }
+
+    class ImageService {
+        <<Service>>
+        -ImageRepository imageRepository
+        +findBySeriesKey(Long): List~ImageDto~
+        +getEncodedImagePaths(Long, Long): DicomResponseDto
+        +getEncodedImagePathsByKeys(Long, Long): DicomResponseDto
+    }
+
+    class ImageRepository {
+        <<Repository>>
+        +findImagePaths(Long, Long): List~ImagePathDto~
+        +findBySeriesKey(Long): List~ImageDto~
+    }
+
+    class DicomResponseDto {
+        <<Data Transfer Object>>
+        -int imageCnt
+        -String[] data
+    }
+
+    class ImageDto {
+        <<Data Transfer Object>>
+        -Long studyKey
+        -Long seriesKey
+        -Long imageKey
+        -String studyinsuid
+        -String seriesinsuid
+        -String sopinstanceuid
+        -String sopclassuid
+        -Integer ststorageid
+        -String path
+        -String fname
+        +ImageDto(Number, Number, Number, String, String, String, String, Number, String, String)
+    }
+
+    class ImagePathDto {
+        <<Data Transfer Object>>
+        -String path
+        -String fname
+        +ImagePathDto(String, String)
+    }
+
+    %% Relationships
+    DicomRestController --> ImageService
+    ImageService --> ImageRepository
+    ImageService --> DicomResponseDto
+    ImageService --> ImageDto
+    ImageService --> ImagePathDto
+    ImageRepository --> ImageDto
+    ImageRepository --> ImagePathDto

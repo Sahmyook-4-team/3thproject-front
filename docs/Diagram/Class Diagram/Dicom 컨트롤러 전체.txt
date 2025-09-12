@@ -1,0 +1,116 @@
+classDiagram
+    class DicomDataController {
+        <<Controller>>
+        -PatientService patientService
+        -StudyService studyService
+        -SeriesService seriesService
+        -ImageService imageService
+        -ReportService reportService
+        +searchPatients(pid, pname): List~PatientDto~
+        +patient(pid): PatientDto
+        +study(studyKey): StudyDto
+        +series(studyKey, seriesKey): SeriesDto
+        +getStudiesForPatient(PatientDto, studyDateStart, studyDateEnd, modality): List~StudyDto~
+        +getSeriesForStudy(StudyDto): List~SeriesDto~
+        +getImagesForSeries(SeriesDto): List~ImageDto~
+        +getReportForStudy(StudyDto): ReportResponseDto
+    }
+
+    class PatientService {
+        <<Service>>
+        -PatientRepository patientRepository
+        +searchPatients(pid, pname): List~PatientDto~
+        +getPatientByPid(pid): PatientDto
+    }
+
+    class StudyService {
+        <<Service>>
+        -StudyRepository studyRepository
+        +findStudiesByPid(pid, studyDateStart, studyDateEnd, modality): List~StudyDto~
+        +getStudyByStudyKey(studyKey): StudyDto
+    }
+
+    class SeriesService {
+        <<Service>>
+        -SeriesRepository seriesRepository
+        +getSeriesByStudyKey(studyKey): List~SeriesDto~
+        +getSeriesByStudyKeyAndSeriesKey(studyKey, seriesKey): SeriesDto
+    }
+
+    class ImageService {
+        <<Service>>
+        -ImageRepository imageRepository
+        -ImageStorageService imageStorageService
+        +getImagesBySeriesKey(seriesKey): List~ImageDto~
+        +getImageUrl(seriesKey, imageNumber): String
+    }
+
+    class ReportService {
+        <<Service>>
+        -ReportRepository reportRepository
+        +getReportByStudyKey(studyKey): ReportResponseDto
+    }
+
+    class PatientDto {
+        <<Data Transfer Object>>
+        -String pid
+        -String pname
+        -String sex
+        -String birthDate
+        -List~StudyDto~ studies
+    }
+
+    class StudyDto {
+        <<Data Transfer Object>>
+        -Long studyKey
+        -String studyDate
+        -String studyTime
+        -String modality
+        -String studyDescription
+        -List~SeriesDto~ series
+        -ReportResponseDto report
+    }
+
+    class SeriesDto {
+        <<Data Transfer Object>>
+        -Long seriesKey
+        -String seriesDescription
+        -String modality
+        -String bodyPartExamined
+        -List~ImageDto~ images
+    }
+
+    class ImageDto {
+        <<Data Transfer Object>>
+        -Long imageKey
+        -String imagePath
+        -String instanceNumber
+        -String imageUrl
+    }
+
+    class ReportResponseDto {
+        <<Data Transfer Object>>
+        -Long reportId
+        -String reportStatus
+        -String reportContent
+        -String createdAt
+        -String updatedAt
+    }
+
+    %% Relationships
+    DicomDataController --> PatientService
+    DicomDataController --> StudyService
+    DicomDataController --> SeriesService
+    DicomDataController --> ImageService
+    DicomDataController --> ReportService
+    
+    PatientService --> PatientDto
+    StudyService --> StudyDto
+    SeriesService --> SeriesDto
+    ImageService --> ImageDto
+    ReportService --> ReportResponseDto
+    
+    PatientDto --> StudyDto : has many
+    StudyDto --> SeriesDto : has many
+    SeriesDto --> ImageDto : has many
+    StudyDto --> ReportResponseDto : has one

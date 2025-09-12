@@ -1,0 +1,53 @@
+classDiagram
+    class ImageDownloadController {
+        <<RestController>>
+        -ImageStorageService imageStorageService
+        +downloadImageByEncodedPath(String): ResponseEntity~Resource~
+        +viewImageByEncodedPath(String): ResponseEntity~Resource~
+    }
+
+    class ImageStorageService {
+        <<Service>>
+        -String storageUrl
+        -CIFSContext authContext
+        +loadImageAsResource(String, String): Resource
+        -createSmbFile(String): SmbFile
+    }
+
+    class CIFSContext {
+        <<External Class>>
+        +withCredentials(NtlmPasswordAuthenticator): CIFSContext
+    }
+
+    class NtlmPasswordAuthenticator {
+        <<External Class>>
+        +NtlmPasswordAuthenticator(domain, username, password)
+    }
+
+    class Resource {
+        <<Spring Interface>>
+        +getInputStream(): InputStream
+        +contentLength(): long
+        +getFilename(): String
+    }
+
+    class HttpHeaders {
+        <<Spring Class>>
+        +add(String, String)
+    }
+
+    class ResponseEntity {
+        <<Spring Class>>
+        +ok(): ResponseEntityBuilder
+        +notFound(): ResponseEntityBuilder
+    }
+
+    %% Relationships
+    ImageDownloadController --> ImageStorageService
+    ImageDownloadController --> HttpHeaders
+    ImageDownloadController --> ResponseEntity
+    ImageStorageService --> CIFSContext
+    ImageStorageService --> NtlmPasswordAuthenticator
+    ImageStorageService --> Resource
+    ImageStorageService --> SmbFile
+    ImageStorageService --> SmbFileInputStream
